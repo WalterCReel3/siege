@@ -1,3 +1,12 @@
+var $E = function(tagName, attributes) {
+    var result = document.createElement(tagName);
+    if (!attributes) return result;
+    _.each(attributes, function (v, k) {
+        result.setAttribute(k, v);
+    });
+    return result;
+}
+
 var klass = {};
 klass.extend = function(base) {
   if ((typeof base) != "function")

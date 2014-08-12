@@ -6,12 +6,22 @@ var rgbaString = function(color) {
                    + alpha + ")";
 }
 
+function randcolor() {
+    return [Math.random()*255,
+            Math.random()*255,
+            Math.random()*255];
+}
+
 var Actor = klass.create();
 _.extend(Actor.prototype, {
-    initialize: function(scene, position, color) {
+    initialize: function(scene, position, faction) {
         this.scene = scene;
         this.position = position;
-        this.color = color;
+        this.faction = faction;
+        this.color = randcolor();
+    },
+
+    tick: function() {
     },
 
     render: function(g) {
