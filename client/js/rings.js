@@ -28,12 +28,15 @@ _.extend(PiChart.prototype, {
         this.rad_begin = 0;
         this.rad_end = Math.PI / 2;
 
+        this.factions = [0.25, 0.43, 0.10];
+        this.fcolors = [randcolor(), randcolor(), randcolor()];
+
         this.rings = 10;
         this.ringState = [];
         this.maxVarience = Math.PI / 3
 
         for (var i=0; i<this.rings; i++) {
-            this.ringState.push(0);
+            this.ringState.push(randbound(-0.3, 0.3));
         }
     },
 
@@ -49,23 +52,34 @@ _.extend(PiChart.prototype, {
         }
     },
 
+    renderFactionFraction: function(g, r1, r2, rgba) {
+        var ring_width = (this.radius / (this.rings * 2));
+        for (var i = 0; i < this.rings - 2; i++) {
+            var ring_height = this.radius - (i * ring_width * 2);
+            g.beginPath();
+            g.fillStyle = rgba;
+            g.arc(this.position[0], this.position[1], ring_height,
+                  r1 + this.ringState[i], r2 + this.ringState[i]);
+            g.arc(this.position[0], this.position[1], ring_height - ring_width,
+                  r2 + this.ringState[i], r1 + this.ringState[i], true);
+            g.fill();
+            g.closePath();
+        }
+    },
+
     render: function(g) {
         this.tick();
 
-        var ring_width = (this.radius / (this.rings * 2));
-        for (var i = 0; i < this.rings; i++) {
-            var ring_height = this.radius - (i * ring_width * 2);
-            g.beginPath();
-            g.fillStyle = rgbaString([127, 0, 127]);
-            g.arc(this.position[0], this.position[1], ring_height,
-                  this.rad_begin + this.ringState[i],
-                  this.rad_end   + this.ringState[i]);
-            g.arc(this.position[0], this.position[1], ring_height - ring_width,
-                  this.rad_end   + this.ringState[i],
-                  this.rad_begin + this.ringState[i],
-                  true);
-            g.fill();
-            g.closePath();
+        var last = 0;
+        var unclaimed = 1 - _.reduce(this.factions, function (l, r) {
+            return l + r;
+        }, 0);
+        var buffer = (unclaimed * Math.PI * 2) / this.factions.length;
+        for (var i=0; i<this.factions.length; i++) {
+            var arc = this.factions[i] * Math.PI * 2 + last;
+            this.renderFactionFraction(
+                    g, last, arc, rgbaString(this.fcolors[i]));
+            last = arc + buffer;
         }
     }
 });
