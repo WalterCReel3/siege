@@ -85,5 +85,24 @@ _.extend(Tasklet.prototype, {
   }
 });
 
+var rgbaString = function(color) {
+    var alpha = color[3] || 1.0;
+    return "rgba(" + color[0] + ", "
+                   + color[1] + ", "
+                   + color[2] + ", "
+                   + alpha + ")";
+}
+
+var randcolor = function() {
+    return [Math.round(Math.random()*255),
+            Math.round(Math.random()*255),
+            Math.round(Math.random()*255)];
+}
+
+var randbound = function(min, max) {
+    var range = max - min;
+    return (Math.random() * range) + min;
+}
+
 
 // vim: set sts=4 sw=4 expandtab:
