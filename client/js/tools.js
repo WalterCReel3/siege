@@ -28,6 +28,7 @@ klass.create = function() {
   return klass.extend(Object);
 }
 
+var $break = function() {};
 var Tasklet = function(callable, timeout) {
     this.callable = callable;
 
@@ -38,7 +39,7 @@ var Tasklet = function(callable, timeout) {
     //     DOM_MIN_TIMEOUT_VALUE)
     // which is fine for original
     // intent but it would be nice
-    // of there was a special case
+    // if there was a special case
     // for 0 meaning relenquish
     // control to other scheduled
     // routines (callbacks sitting
@@ -75,6 +76,7 @@ _.extend(Tasklet.prototype, {
       // catch errors and the special
       // $break object for normal
       // termination
+      if (e !== $break) console.log(e);
       return;
     }
 

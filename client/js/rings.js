@@ -1,21 +1,50 @@
 var rgbaString = function(color) {
     var alpha = color[3] || 1.0;
-    return "rgba(" + Math.round(color[0]) + ", "
-                   + Math.round(color[1]) + ", "
-                   + Math.round(color[2]) + ", "
+    return "rgba(" + color[0] + ", "
+                   + color[1] + ", "
+                   + color[2] + ", "
                    + alpha + ")";
 }
 
 var randcolor = function() {
-    return [Math.random()*255,
-            Math.random()*255,
-            Math.random()*255];
+    return [Math.round(Math.random()*255),
+            Math.round(Math.random()*255),
+            Math.round(Math.random()*255)];
 }
 
 var randbound = function(min, max) {
     var range = max - min;
     return (Math.random() * range) + min;
 }
+
+var RingOffset = klass.create();
+_.extend(RingOffset.prototype, {
+    initialize: function() {
+        this.speed = 0;
+        this.currentOffset = 0.0;
+        this.nextDecision = 0;
+        this.maxOffset = (Math.PI) / 8;
+    },
+
+    setWanderState: function() {
+        this.speed = randbound(-0.003, 0.003);
+    },
+
+    tick: function() {
+        var curTime = (new Date()).getTime();
+        if (curTime > this.nextDecision) {
+            this.setWanderState();
+            this.nextDecision = curTime + Math.round(randbound(2000, 7000));
+        }
+
+        this.currentOffset += this.speed;
+        if (this.currentOffset > this.maxOffset) {
+            this.currentOffset = this.maxOffset;
+        } else if (this.currentOffset < -this.maxOffset) {
+            this.currentOffset = -this.maxOffset;
+        }
+    }
+});
 
 // May want to track things using polar coords
 // and then translating to x,y
@@ -25,30 +54,20 @@ _.extend(PiChart.prototype, {
         this.position = pos;
         this.radius = rad;
 
-        this.rad_begin = 0;
-        this.rad_end = Math.PI / 2;
-
         this.factions = [0.25, 0.43, 0.10];
         this.fcolors = [randcolor(), randcolor(), randcolor()];
 
         this.rings = 10;
-        this.ringState = [];
-        this.maxVarience = Math.PI / 3
+        this.ringOffset = [];
 
         for (var i=0; i<this.rings; i++) {
-            this.ringState.push(randbound(-0.3, 0.3));
+            this.ringOffset.push(new RingOffset());
         }
     },
 
     tick: function() {
         for (var i=0; i<this.rings; i++) {
-            var newVarience = this.ringState[i] + randbound(-0.01, 0.01);
-            if (newVarience > this.maxVarience) {
-                newVarience = this.maxVarience;
-            } else if (newVarience < -this.maxVarience) {
-                newVarience = -this.maxVarience;
-            }
-            this.ringState[i] = newVarience;
+            this.ringOffset[i].tick()
         }
     },
 
@@ -58,10 +77,11 @@ _.extend(PiChart.prototype, {
             var ring_height = this.radius - (i * ring_width * 2);
             g.beginPath();
             g.fillStyle = rgba;
+            var off = this.ringOffset[i].currentOffset;
             g.arc(this.position[0], this.position[1], ring_height,
-                  r1 + this.ringState[i], r2 + this.ringState[i]);
+                  r1 + off, r2 + off);
             g.arc(this.position[0], this.position[1], ring_height - ring_width,
-                  r2 + this.ringState[i], r1 + this.ringState[i], true);
+                  r2 + off, r1 + off, true);
             g.fill();
             g.closePath();
         }
@@ -130,8 +150,8 @@ _.extend(Application.prototype, {
     },
 
     onCanvasClick: function(evt) {
-        var scenePos = this.translateScenePosition(evt);
-        this.newActor(scenePos);
+        // var scenePos = this.translateScenePosition(evt);
+        // this.newActor(scenePos);
     }
 });
 
