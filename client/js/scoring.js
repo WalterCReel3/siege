@@ -1,19 +1,39 @@
 var Scene = klass.create();
 _.extend(Scene.prototype, {
-    initialize: function(canvas) {
+    initialize: function(app, canvas) {
+        this.application = app;
         this.canvas = canvas;
         this.width = canvas.width;
         this.height = canvas.height;
         this.graphics = canvas.getContext('2d');
-        this.chart = new PiChart([this.width/2, this.height/2], 100);
+        this.objects = [];
     },
 
     render: function() {
         var g = this.graphics;
         g.clearRect(0, 0, this.width, this.height);
-        g.save();
-        this.chart.render(g);
-        g.restore();
+        _.each(this.objects, function(object) {
+            g.save();
+            object.render(g);
+            g.restore();
+        });
+    }, 
+
+    addObject: function(obj) {
+        this.objects.push(obj);
+    }
+});
+
+var Clan = klass.create();
+_.extend(Clan.prototype, {
+    initialize: function(id) {
+        this.id = id;
+        this.points = 0;
+        this.lastTime = 0;
+    },
+
+    tick: function() {
+        this.points -= Math.ceil(this.points * 0.008);
     }
 });
 
@@ -22,9 +42,26 @@ _.extend(Application.prototype, {
     initialize: function() {
         this.element = $('#application');
         this.canvas = $('#canvas');
-        this.scene = new Scene(this.canvas.get(0));
+        this.clan0Score = $("#clan-0-score");
+        this.clan1Score = $("#clan-1-score");
+        this.clan2Score = $("#clan-2-score");
+        this.totalScore = $("#total-score");
+        this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
         this.bindEvents();
+
+        var chartPos = [this.scene.width/2, this.scene.height/2];
+        this.chart = new PiChart(this, chartPos, 100, 3);
+        this.scene.addObject(this.chart);
+
+        this.clans = [];
+        this.nclans = 3;
+
+        for (var i=0; i<3; i++) {
+            this.clans.push(new Clan(i));
+        }
+
+        this.totalPoints = 0;
     },
 
     bindEvents: function() {
@@ -36,10 +73,61 @@ _.extend(Application.prototype, {
         this.tasklet.run();
     },
 
-    onKeyPress: function() {
+    factionAttack: function(id, power) {
+        var clan = this.clans[id];
+        clan.points += power;
+    },
+
+    onKeyPress: function(evt) {
+        var key = String.fromCharCode(evt.charCode);
+        switch (key) {
+        case 'q':
+            this.factionAttack(0, 100);
+            break;
+        case 'r':
+            this.factionAttack(1, 100);
+            break;
+        case 'u':
+            this.factionAttack(2, 100);
+            break;
+        }
+    },
+
+    calcControl: function() {
+        this.totalPoints = _.reduce(this.clans, function(acc, clan) {
+            return clan.points + acc;
+        }, 0);
+        var eval = this.totalPoints;
+        if (this.totalPoints < 2000) {
+            eval = 2000;
+        }
+        var self = this;
+        var ret = _.map(this.clans, function (clan) {
+            if (self.totalPoints === 0) {
+                return 0;
+            }
+            return clan.points / eval;
+        });
+        return ret;
+    },
+
+    renderStats: function() {
+        this.clan0Score.text(this.clans[0].points);
+        this.clan1Score.text(this.clans[1].points);
+        this.clan2Score.text(this.clans[2].points);
+        this.totalScore.text(this.totalPoints);
+    },
+
+    tick: function() {
+        _.each(this.clans, function(clan) {
+            clan.tick();
+        });
+        this.chart.updateWedges(this.calcControl());
     },
 
     onEnterFrame: function() {
+        this.tick()
+        this.renderStats();
         this.scene.render();
     },
 

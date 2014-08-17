@@ -32,12 +32,19 @@ _.extend(RingOffset.prototype, {
 // and then translating to x,y
 var PiChart = klass.create();
 _.extend(PiChart.prototype, {
-    initialize: function(pos, rad) {
+    initialize: function(app, pos, rad, n) {
+        this.application = app;
         this.position = pos;
         this.radius = rad;
 
-        this.factions = [0.25, 0.43, 0.10];
-        this.fcolors = [randcolor(), randcolor(), randcolor()];
+        this.wedges = [];
+        this.wedgeColors = [];
+        this.nWedges = n;
+
+        for (var i=0; i<this.nWedges; i++) {
+            this.wedges.push(0.0);
+            this.wedgeColors.push(randcolor());
+        }
 
         this.rings = 10;
         this.ringOffset = [];
@@ -47,22 +54,29 @@ _.extend(PiChart.prototype, {
         }
     },
 
+    updateWedges: function(wedgeValues) {
+        for (var i=0; i<this.nWedges; i++) {
+            var val = wedgeValues[i] || 0;
+            this.wedges[i] = val;
+        }
+    },
+
     tick: function() {
         for (var i=0; i<this.rings; i++) {
             this.ringOffset[i].tick()
         }
     },
 
-    renderFactionFraction: function(g, r1, r2, rgba) {
-        var ring_width = (this.radius / (this.rings * 2));
+    renderWedge: function(g, r1, r2, rgba) {
+        var ringWidth = (this.radius / (this.rings * 2));
         for (var i = 0; i < this.rings - 2; i++) {
-            var ring_height = this.radius - (i * ring_width * 2);
+            var ringHeight = this.radius - (i * ringWidth * 2);
             g.beginPath();
             g.fillStyle = rgba;
             var off = this.ringOffset[i].currentOffset;
-            g.arc(this.position[0], this.position[1], ring_height,
+            g.arc(this.position[0], this.position[1], ringHeight,
                   r1 + off, r2 + off);
-            g.arc(this.position[0], this.position[1], ring_height - ring_width,
+            g.arc(this.position[0], this.position[1], ringHeight - ringWidth,
                   r2 + off, r1 + off, true);
             g.fill();
             g.closePath();
@@ -71,16 +85,15 @@ _.extend(PiChart.prototype, {
 
     render: function(g) {
         this.tick();
-
         var last = 0;
-        var unclaimed = 1 - _.reduce(this.factions, function (l, r) {
+        var unclaimed = 1 - _.reduce(this.wedges, function (l, r) {
             return l + r;
         }, 0);
-        var buffer = (unclaimed * Math.PI * 2) / this.factions.length;
-        for (var i=0; i<this.factions.length; i++) {
-            var arc = this.factions[i] * Math.PI * 2 + last;
-            this.renderFactionFraction(
-                    g, last, arc, rgbaString(this.fcolors[i]));
+        var buffer = (unclaimed * Math.PI * 2) / this.wedges.length;
+        for (var i=0; i<this.wedges.length; i++) {
+            var arc = this.wedges[i] * Math.PI * 2 + last;
+            this.renderWedge(
+                    g, last, arc, rgbaString(this.wedgeColors[i]));
             last = arc + buffer;
         }
     }
