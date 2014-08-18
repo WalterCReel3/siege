@@ -7,19 +7,16 @@
  - id
  - device_id (devices)
  - game_id (games)
- - clan_number
+ - clan
+ - current_territory
 
 # points
  - id
  - game_id (games)
- - territory_number
+ - territory
  - points
 
 # devices
  - id
- - rank_id (ranks)
-
-# ranks
- - id
- - name
+ - rank
  - bonus
