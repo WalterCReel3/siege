@@ -1,5 +1,3 @@
-import json
-
 from sqlalchemy.schema import *
 from sqlalchemy.types import *
 from sqlalchemy.orm import *
@@ -43,6 +41,7 @@ class Game(db.Model):
                     startedAt=self.started_at,
                     endedAt=self.ended_at,
                     comment=self.comment)
+
 
 class Player(db.Model):
     __tablename__ = 'players'
