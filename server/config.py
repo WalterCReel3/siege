@@ -21,17 +21,17 @@ config = {
     'init': {
         'devices': [
             {
-                'id': 0,
+                'id': 'znemxs63dyddy',
                 'bonus': 0,
                 'comment': 'First battlestation'
             },
             {
-                'id': 1,
+                'id': 'kjdobbempami4',
                 'bonus': 0,
                 'comment': 'Second battlestation'
             },
             {
-                'id': 2,
+                'id': 'hguxnrsq4vdq4',
                 'bonus': 0,
                 'comment': 'Third battlestation'
             }
@@ -41,11 +41,11 @@ config = {
     # A new game starts with these entities
     'game_template': {
         'players': [
-            {'device_id': 0, 'comment': 'First battlestation'},
+            {'device_id': 'znemxs63dyddy', 'comment': 'First battlestation'},
             # Second battlestation
-            {'device_id': 1, 'comment': 'Second battlestation'},
+            {'device_id': 'kjdobbempami4', 'comment': 'Second battlestation'},
             # Third battlestation
-            {'device_id': 2, 'comment': 'Third battlestation'}
+            {'device_id': 'hguxnrsq4vdq4', 'comment': 'Third battlestation'}
         ]
     },
 

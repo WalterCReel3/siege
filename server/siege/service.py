@@ -1,7 +1,8 @@
 import os
-from datetime import datetime
+
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
+
 from itsdangerous import URLSafeTimedSerializer
 
 FLASK_APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +21,7 @@ cookie_serializer = None
 
 
 def populate_initial_data(config, db):
-    from siege.models import *
+    from siege.models import Device
 
     # Populate the initial data
     for initial_device in config['init']['devices']:

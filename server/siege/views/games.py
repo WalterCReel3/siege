@@ -5,14 +5,15 @@ from flask import request
 from flask.helpers import flash
 from flask import redirect
 from flask import url_for
+from flask import jsonify
 
 from siege.service import app
 from siege.models import Game
-from siege.views.view_utils import *
 
 @app.route('/games')
 def games_index():
-    return json_response(Game.query.all(), Game.json_dict)
+    response = jsonify([g.to_dict() for g in Game.query.all()])
+    return response
 
 @app.route('/games/current')
 def games_current():
