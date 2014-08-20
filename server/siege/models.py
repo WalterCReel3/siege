@@ -1,5 +1,6 @@
 import os
 import base64
+import datetime
 
 from sqlalchemy.schema import *
 from sqlalchemy.types import *
@@ -33,13 +34,12 @@ class Device(db.Model):
 class Game(db.Model):
     __tablename__ = 'games'
     id = Column(Text, primary_key=True, default=_new_id)
-    started_at = Column(DateTime, nullable=False)
+    started_at = Column(DateTime, nullable=False, default=datetime.datetime.now())
     ended_at = Column(DateTime, nullable=True)
     players = relation('Player')
     points = relation('Points')
 
     def __init__(self, **kwargs):
-        self.started_at = Date()
         for k, v in kwargs.items():
             setattr(self, k, v)
 
