@@ -1,6 +1,7 @@
 import os
 import base64
 import datetime
+import time
 
 from sqlalchemy.schema import *
 from sqlalchemy.types import *
@@ -9,13 +10,23 @@ from sqlalchemy.orm import *
 from siege.service import db
 
 
-def _new_id():
+# Creates a random text ID
+def new_id():
     return base64.b32encode(os.urandom(8)).lower().rstrip('=')
+
+
+# Gets a Unix timestamp number from a Python datetime or None
+def unixtime(dt):
+    # I can't remember if some date values are falsy, so use 'is None'
+    if dt is None:
+        return None
+    return int(time.mktime(dt.timetuple()))
 
 
 class Device(db.Model):
     __tablename__ = 'devices'
-    id = Column(Text, primary_key=True, default=_new_id)
+    id = Column(Text, primary_key=True, default=new_id)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
     rank = Column(Integer, default=0)
     bonus = Column(BigInteger, default=0)
     comment = Column(Text)
@@ -26,6 +37,7 @@ class Device(db.Model):
 
     def to_dict(self):
         return dict(id=self.id,
+                    createdAt=unixtime(self.created_at),
                     rank=self.rank,
                     bonus=self.bonus,
                     comment=self.comment)
@@ -33,11 +45,15 @@ class Device(db.Model):
 
 class Game(db.Model):
     __tablename__ = 'games'
-    id = Column(Text, primary_key=True, default=_new_id)
-    started_at = Column(DateTime, nullable=False, default=datetime.datetime.now())
+    id = Column(Text, primary_key=True, default=new_id)
+    started_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
     ended_at = Column(DateTime, nullable=True)
     players = relation('Player')
     points = relation('Points')
+
+    @staticmethod
+    def current():
+        return Game.query.filter_by(ended_at=None).order_by(Game.started_at).limit(1).first()
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -45,14 +61,14 @@ class Game(db.Model):
 
     def to_dict(self):
         return dict(id=self.id,
-                    startedAt=self.started_at,
-                    endedAt=self.ended_at,
-                    comment=self.comment)
+                    startedAt=unixtime(self.started_at),
+                    endedAt=unixtime(self.ended_at),
+                    numPlayers=len(self.players))
 
 
 class Player(db.Model):
     __tablename__ = 'players'
-    id = Column(Text, primary_key=True, default=_new_id)
+    id = Column(Text, primary_key=True, default=new_id)
     game_id = Column(Text, ForeignKey('games.id'), nullable=False)
     device_id = Column(Text, ForeignKey('devices.id'), nullable=False)
     clan = Column(Integer, nullable=False)
@@ -66,7 +82,7 @@ class Player(db.Model):
 
 class Points(db.Model):
     __tablename__ = 'points'
-    id = Column(Text, primary_key=True, default=_new_id)
+    id = Column(Text, primary_key=True, default=new_id)
     game_id = Column(Text, ForeignKey('games.id'), nullable=False)
     territory = Column(Integer, nullable=False)
     points = Column(BigInteger, nullable=False, default=0)
