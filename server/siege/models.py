@@ -31,6 +31,8 @@ class Device(db.Model):
     bonus = Column(BigInteger, default=0)
     comment = Column(Text)
 
+    players = relation('Player', backref='device')
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -48,8 +50,9 @@ class Game(db.Model):
     id = Column(Text, primary_key=True, default=new_id)
     started_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
     ended_at = Column(DateTime, nullable=True)
-    players = relation('Player')
-    points = relation('Points')
+
+    players = relation('Player', backref='game')
+    points = relation('Points', backref='game')
 
     @staticmethod
     def current():

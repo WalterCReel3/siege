@@ -20,8 +20,11 @@ def territories(game_id, territory):
     if not player_id:
         abort(403, 'Must supply playerId')
 
-    # TODO calculate points
-    points = 1
+    player = Player.query.get(player_id)
+    if not player:
+        abort(403, 'Player not found')
+
+    points = 1 + player.device.bonus
 
     # Must lock table to ensure atomicity for the upsert hack.
     db.session.execute('begin;'
