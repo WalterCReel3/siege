@@ -1,6 +1,5 @@
 import datetime
 
-from flask import request
 from flask import url_for
 from flask import abort
 from flask import Response
@@ -8,6 +7,7 @@ from flask import Response
 from siege.service import app, db
 from siege.models import Game
 from view_utils import jsonate
+
 
 @app.route('/games')
 def games_index():
@@ -60,4 +60,3 @@ def games_create():
     response.status_code = 201
     response.headers['Location'] = url_for('games_get', game_id=new_game.id)
     return response
-

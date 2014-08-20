@@ -71,13 +71,23 @@ class Player(db.Model):
     id = Column(Text, primary_key=True, default=new_id)
     game_id = Column(Text, ForeignKey('games.id'), nullable=False)
     device_id = Column(Text, ForeignKey('devices.id'), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
     clan = Column(Integer, nullable=False)
-    current_territory = Column(Integer, nullable=False)
+    current_territory = Column(Integer, nullable=True)
     comment = Column(Text)
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    def to_dict(self):
+        return dict(id=self.id,
+                    gameId=self.game_id,
+                    deviceId=self.device_id,
+                    createdAt=unixtime(self.created_at),
+                    clan=self.clan,
+                    currentTerritory=self.current_territory,
+                    comment=self.comment)
 
 
 class Points(db.Model):
