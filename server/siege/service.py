@@ -7,9 +7,10 @@ from itsdangerous import URLSafeTimedSerializer
 
 FLASK_APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Don't import any modules that use DB models up here; import them as required
-# but after db.configure_db has been executed.  This file is the only file that
-# requires this special treatment.  Other files can import and use models freely.
+# Don't import any modules that use DB models up here; import them as
+# required but after db.configure_db has been executed.  This file is
+# the only file that requires this special treatment.  Other files can
+# import and use models freely.
 
 app = Flask(__name__)
 
@@ -43,7 +44,8 @@ def run(the_config):
     # Cookie serializer
     cookie_serializer = URLSafeTimedSerializer(app.secret_key)
 
-    # Configure the database before importing any other packages that use DB models.
+    # Configure the database before importing any other packages that
+    # use DB models.
     app.config['SQLALCHEMY_DATABASE_URI'] = config['db']['uri']
     app.config['SQLALCHEMY_ECHO'] = config['db']['echo']
     db = SQLAlchemy(app)
