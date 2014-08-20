@@ -6,7 +6,7 @@ from flask import Response
 
 from siege.service import app, db
 from siege.models import Game
-from view_utils import jsonate
+from view_utils import jsonate, get_game_or_abort
 
 
 @app.route('/games')
@@ -15,29 +15,15 @@ def games_index():
     return response
 
 
-@app.route('/games/current')
-def games_current():
-    game = Game.current()
-    if not game:
-        abort(404, 'Game not found')
-    return jsonate(game.to_dict())
-
-
 @app.route('/games/<game_id>')
 def games_get(game_id):
-    game = Game.query.get(game_id)
-    if not game:
-        abort(404, 'Game not found')
-    response = jsonate(game.to_dict())
-    return response
+    game = get_game_or_abort(game_id)
+    return jsonate(game.to_dict())
 
 
 @app.route('/games/<game_id>', methods=['DELETE'])
 def games_stop(game_id):
-    game = Game.query.get(game_id)
-    if not game:
-        abort(404, 'Game not found')
-
+    game = get_game_or_abort(game_id)
     if game.ended_at:
         abort(403, 'That game has already been stopped')
 
