@@ -7,17 +7,8 @@ from flask import Response
 
 from siege.service import app, db, config
 from siege.models import Player, Game, Device
-from view_utils import jsonate
+from view_utils import jsonate, get_game_or_abort
 
-
-def get_game_or_abort(game_id):
-    if game_id == 'current':
-        game = Game.current()
-    else:
-        game = Game.query.get(game_id)
-    if not game:
-        abort(404, 'Game not found')
-    return game
 
 @app.route('/games/<game_id>/players')
 def players_index(game_id):
@@ -51,7 +42,7 @@ def players_create(game_id):
     game = get_game_or_abort(game_id)
 
     if game.ended_at is not None:
-        abort(403, 'Game is not in progress')
+        abort(403, 'Cannot join a player to a finished game')
 
     device_id = request.json.get('deviceId', None)
     if not device_id:

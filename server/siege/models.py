@@ -93,9 +93,11 @@ class Player(db.Model):
 class Points(db.Model):
     __tablename__ = 'points'
     id = Column(Text, primary_key=True, default=new_id)
-    game_id = Column(Text, ForeignKey('games.id'), nullable=False)
-    territory = Column(Integer, nullable=False)
+    game_id = Column(Text, ForeignKey('games.id'), nullable=False, index=True)
+    territory = Column(Integer, nullable=False, index=True)
     points = Column(BigInteger, nullable=False, default=0)
+
+    __table_args__ = (UniqueConstraint(game_id, territory),)
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
