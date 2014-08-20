@@ -24,7 +24,9 @@ def devices_get(device_id):
 
 @app.route('/devices', methods=['POST'])
 def devices_create():
-    new_device = Device(comment=request.access_route)
+    comment = '%s, %s' % (request.remote_addr, request.user_agent)
+
+    new_device = Device(comment=comment)
     db.session.add(new_device)
     db.session.commit()
 
