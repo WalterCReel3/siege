@@ -1,7 +1,10 @@
+from gevent import monkey
+monkey.patch_all()
 import os
 
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.socketio import SocketIO, emit
 
 from itsdangerous import URLSafeTimedSerializer
 
@@ -13,6 +16,8 @@ FLASK_APP_DIR = os.path.dirname(os.path.abspath(__file__))
 # import and use models freely.
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
 # Loaded by run
 base = None
@@ -61,4 +66,5 @@ def run(the_config):
 
     populate_initial_data(config, db)
 
-    app.run(host=config['flask']['bind'], debug=config['flask']['debug'])
+    socketio.run(app, host=config['flask']['bind'], debug=config['flask']['debug'])
+    # socketio.run(app)

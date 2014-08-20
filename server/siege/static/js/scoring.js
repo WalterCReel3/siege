@@ -134,6 +134,7 @@ _.extend(Application.prototype, {
     onCanvasClick: function(evt) {
         // var scenePos = this.translateScenePosition(evt);
         // this.newActor(scenePos);
+        this.factionAttack(0, 100);
     }
 });
 
