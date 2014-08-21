@@ -46,6 +46,9 @@ _.extend(Application.prototype, {
         this.clan1Score = $("#clan-1-score");
         this.clan2Score = $("#clan-2-score");
         this.totalScore = $("#total-score");
+        this.socket = io.connect(
+                '//' + document.domain +
+                ':'  + location.port + '/test');
         this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
         this.bindEvents();
@@ -65,17 +68,30 @@ _.extend(Application.prototype, {
     },
 
     bindEvents: function() {
+        this.socket.on('game-update', _.bind(this.onGameEvent, this));
         this.canvas.on('click', _.bind(this.onCanvasClick, this));
         $(window).on('keypress', _.bind(this.onKeyPress, this));
+        $(window).on('beforeunload', _.bind(this.onDestroy, this));
+    },
+
+    onDestroy: function() {
+        this.socket.disconnect()
     },
 
     run: function() {
         this.tasklet.run();
     },
 
+    onGameEvent: function(msg) {
+        // var clan = this.clans[id];
+        // clan.points += power;
+        console.log(msg);
+    },
+
     factionAttack: function(id, power) {
-        var clan = this.clans[id];
-        clan.points += power;
+        // var clan = this.clans[id];
+        // clan.points += power;
+        this.socket.emit('click-event', {'id': id, 'power':power});
     },
 
     onKeyPress: function(evt) {

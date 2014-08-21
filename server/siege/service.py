@@ -66,5 +66,5 @@ def run(the_config):
 
     populate_initial_data(config, db)
 
-    socketio.run(app, host=config['flask']['bind'], debug=config['flask']['debug'])
-    # socketio.run(app)
+    # socketio.run(app, host=config['flask']['bind'], debug=config['flask']['debug'])
+    socketio.run(app)
