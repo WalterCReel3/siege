@@ -50,5 +50,8 @@ config = {
     },
 
     # Thresholds for moving up rank (events, not points)
-    'ranks': [10, 250, 750, 1500]
+    'ranks': [10, 250, 750, 1500],
+
+    # The known clan numbers (for random assignment)
+    'clans': [0, 1, 2]
 }
