@@ -2,7 +2,7 @@ from gevent import monkey
 monkey.patch_all()
 
 import os
-import redis
+# import redis
 
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
