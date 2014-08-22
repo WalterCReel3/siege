@@ -17,6 +17,4 @@ def index():
 
 @socketio.on('click-event', namespace='/test')
 def click_event(message):
-    print "Got a click event {}".format(repr(message))
-    emit('game-update', message)
-    print "Should have emited game-update"
+    emit('game-update', message, namespace='/test', broadcast=True)

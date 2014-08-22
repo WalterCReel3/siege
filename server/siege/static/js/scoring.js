@@ -51,6 +51,7 @@ _.extend(Application.prototype, {
                 ':'  + location.port + '/test');
         this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
+
         this.bindEvents();
 
         var chartPos = [this.scene.width/2, this.scene.height/2];
@@ -83,14 +84,13 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
-        // var clan = this.clans[id];
-        // clan.points += power;
-        console.log(msg);
+        var id = msg.id;
+        var power = msg.power;
+        var clan = this.clans[id];
+        clan.points += power;
     },
 
     factionAttack: function(id, power) {
-        // var clan = this.clans[id];
-        // clan.points += power;
         this.socket.emit('click-event', {'id': id, 'power':power});
     },
 

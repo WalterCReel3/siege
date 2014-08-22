@@ -1,6 +1,8 @@
 from gevent import monkey
 monkey.patch_all()
+
 import os
+import redis
 
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -26,6 +28,7 @@ db = None
 cookie_serializer = None
 
 
+
 def populate_initial_data(config, db):
     from siege.models import Device
 
@@ -45,6 +48,7 @@ def run(the_config):
     config = the_config
 
     app.secret_key = config['flask']['session_secret_key']
+    # app.redis = redis.StrictRedis(host='localhost', port=6379, db=0)
 
     # Cookie serializer
     cookie_serializer = URLSafeTimedSerializer(app.secret_key)
@@ -67,4 +71,4 @@ def run(the_config):
     populate_initial_data(config, db)
 
     # socketio.run(app, host=config['flask']['bind'], debug=config['flask']['debug'])
-    socketio.run(app)
+    socketio.run(app, host=config['flask']['bind'])
