@@ -19,22 +19,63 @@
 
 #include "Adafruit_NeoPixel.h"
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, 6, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel * strips[4];
+byte strip_pins[4] = {4, 5, 6, 7};
+byte strip_leds[4] = {60, 60, 60, 60};
+
+static char cmd[16];
+static byte cmd_idx = 0;
 
 void setup() {
-  strip.begin();
-  strip.show();
+  Serial.begin(115200);
+  memset(cmd, 0, sizeof(cmd));
+
+  for (int i = 0; i < sizeof(strips); i++) {
+    strips[i] = new Adafruit_NeoPixel(strip_leds[i], strip_pins[i], NEO_GRB + NEO_KHZ800);
+    strips[i]->begin();
+    strips[i]->show();
+  }
+  
+  for (int i = 0; i < sizeof(strips); i++) {
+    for (int p = 0; p < strip_leds[i]; p++) {
+      strips[i]->setPixelColor(p, 255, 255, 0);
+    }
+    strips[i]->show();
+  }
 }
 
-byte r, g, b = 128;
-
 void loop() {
-  delay(10);
-  for (byte i = 0; i < 60; i++) {
-    strip.setPixelColor(i, r, g, b);
+  read_and_exec_cmd();
+}
+
+void read_and_exec_cmd() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    boolean clear = false;
+
+    if (c != '\n' && cmd_idx < sizeof(cmd)) {
+      cmd[cmd_idx++] = c;
+      continue;
+    }
+
+    if (c == '\n') {
+      exec_cmd();
+    } else {
+      Serial.println("command too long");
+    }
+    
+    // Done executing or buffer is full before newline
+    memset(cmd, 0, sizeof(cmd));
+    cmd_idx = 0;
+    Serial.print("\n> ");
   }
-  r += 1;
-  g += 2;
-  b += 3;
-  strip.show();
+}
+
+void exec_cmd() {
+  if (strncmp(cmd, "set", sizeof(3)) == 0) {
+    // TODO
+  } else {
+    Serial.print("unknown command: ");
+    Serial.println(cmd);
+  }  
 }
