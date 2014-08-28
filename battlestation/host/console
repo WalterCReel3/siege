@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+#
+# Needs pyserial (pip install pyserial or apt-get install python-serial).
+
+import os
+import sys
+import time
+import serial
+import termios
+import contextlib
+
+
+@contextlib.contextmanager
+def non_blocking_term(f):
+    fd = f.fileno()
+    old_attr = termios.tcgetattr(fd)
+    new_attr = termios.tcgetattr(fd)
+    new_attr[3] = new_attr[3] & ~termios.ICANON
+    new_attr[6][termios.VMIN] = 0
+    new_attr[6][termios.VTIME] = 0
+    try:
+        termios.tcsetattr(fd, termios.TCSANOW, new_attr)
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSAFLUSH, old_attr)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        sys.stderr.write('usage: %s /dev/ttyUSBn speed\n' % sys.argv[0])
+        sys.exit(1)
+
+    serial_dev = sys.argv[1]
+    speed = int(sys.argv[2])
+    with serial.Serial(serial_dev, speed, timeout=1) as serial_file:
+        with non_blocking_term(sys.stdin), non_blocking_term(serial_file):
+            while True:
+                # Read terminal input and write it to the serial port
+                s = os.read(sys.stdin.fileno(), 64)
+                if s:
+                    serial_file.write(s)
+                    serial_file.flush()
+
+                # Read serial input and write it to the terminal
+                s = os.read(serial_file.fileno(), 64)
+                if s:
+                    sys.stdout.write(s)
+                    sys.stdout.flush()
+
+                # Small sleep so we don't burn down the house
+                time.sleep(0.10)
