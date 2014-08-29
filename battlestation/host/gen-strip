@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+import random
+
+while True: 
+  print('strip 0 0 %02d 1 %02d 2 %02d' % (random.uniform(10, 20), random.uniform(10, 20), random.uniform(10, 20)))
