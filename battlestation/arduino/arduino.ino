@@ -34,7 +34,7 @@ void setup() {
   Serial.begin(115200);
   
   for (byte i = 0; i < 4; i++) {
-    strips[i] = &Adafruit_NeoPixel(strip_leds[i], strip_pins[i], NEO_GRB + NEO_KHZ800);
+    strips[i] = new Adafruit_NeoPixel(strip_leds[i], strip_pins[i], NEO_GRB + NEO_KHZ800);
     strips[i]->begin();
     strips[i]->show();
   }
@@ -74,33 +74,28 @@ void read_and_exec_cmd() {
     // Done executing or buffer is full before newline
     memset(cmd, 0, sizeof(cmd));
     cmd_idx = 0;
-    Serial.print("\n> ");
+    Serial.print("> ");
   }
 }
 
-static const char cmd_teams[] = "teams";
-static const char cmd_team[] = "team t rrr ggg bbb";
-static const char cmd_strip[] = "strip s t 11 t 22 t 33";
-static const char cmd_help[] = "help";
-
 void exec_cmd() {
-  if (strncmp(cmd, "teams", 5) == 0) {
-    exec_teams();
-  } else if (strncmp(cmd, "team", 4) == 0) {
-    exec_team();
-  } else if (strncmp(cmd, "strip", 5) == 0) {
-    exec_strip();
-  } else if (strncmp(cmd, "help", 4) == 0) {
-    Serial.println(cmd_teams);
-    Serial.println(cmd_team);
-    Serial.println(cmd_help);
-    return;
+  char * tok = NULL;
+  const char * cmd_name = strtok_r(cmd, " ", &tok);
+  if (strcmp(cmd_name, "teams") == 0) {
+    exec_teams(tok);
+  } else if (strcmp(cmd, "team") == 0) {
+    exec_team(tok);
+  } else if (strcmp(cmd, "strip") == 0) {
+    exec_strip(tok);
+  } else if (strcmp(cmd, "help") == 0) {
+    Serial.println("teams");
+    Serial.println("team <team_num> <r> <g> <b>");
+    Serial.println("strip <strip_num> <team_num> <leds> <team_num> <leds> <team_num> <leds>");
+    Serial.println("help");
   } else {
     Serial.print("unknown command: ");
     Serial.println(cmd);
-    return;
   }  
-  Serial.println("ok");
 }
 
 void usage(const char * usage) {
@@ -118,7 +113,7 @@ int read_int(char * text, byte digits) {
   return atoi(s);
 }
 
-void exec_teams(){
+void exec_teams(char * tok){
   for (byte i = 0; i < 3; i++) {
     Serial.print(i);
     Serial.print(": ");
@@ -131,43 +126,65 @@ void exec_teams(){
   }
 }
 
-void exec_team() {
-  if (strlen(cmd) < strlen(cmd_team)) {
-    usage(cmd_team);
+void exec_team(char * tok) {
+  // Read team number
+  char * arg = strtok_r(NULL, " ", &tok);
+  if (arg == NULL) {  
+    Serial.println("team number is required");
     return;
   }
-  int t = read_int(&cmd[5], 1);
-  if (t > 2) {
-    Serial.println("Invalid team number");
+  int team = atoi(arg);
+  if (team > 2) {
+    Serial.println("team number is one of 0,1,2");
     return;
   }
-  int r = read_int(&cmd[7], 3);
-  int g = read_int(&cmd[11], 3);
-  int b = read_int(&cmd[15], 3);
-  team_colors[t] = Adafruit_NeoPixel::Color(r, g, b);
+  // Read colors
+  arg = strtok_r(NULL, " ", &tok);
+  int r = atoi(arg);
+  arg = strtok_r(NULL, " ", &tok);
+  int g = atoi(arg);
+  arg = strtok_r(NULL, " ", &tok);
+  int b = atoi(arg);
+  team_colors[team] = Adafruit_NeoPixel::Color(r, g, b);
 }
 
-void exec_strip() {
-  if (strlen(cmd) < strlen(cmd_strip)) {
-    usage(cmd_strip);
+void exec_strip(char * tok) {
+  // Read strip number
+  char * arg = strtok_r(NULL, " ", &tok);
+  if (arg == NULL) {  
+    Serial.println("strip number is required");
     return;
   }
-  int strip = read_int(&cmd[6], 1);
-  if (strip > 3) {
-    Serial.println("Invalid strip number");
+  int strip = atoi(arg);
+  if (strip > 2) {
+    Serial.println("strip number is one of 0,1,2");
     return;
   }
 
-  byte led = 0;  
-
-  // Read the three "t 11" parts
-  for (byte i = 8; i < 19; i += 5) {
-    int team = read_int(&cmd[i], 1);
-    if (team > 3) {
-      Serial.println("Invalid team number");
+  byte led = 0;
+  // Read the three groups of "teamNumber ledCount"
+  for (byte i = 0; i < 3; i++) {
+    // Read the team
+    arg = strtok_r(NULL, " ", &tok);
+    if (arg == NULL) {  
+      Serial.println("team number is required");
       return;
     }
-    int team_leds = read_int(&cmd[i + 2], 2);
+    int team = atoi(arg);
+    if (team > 2) {
+      Serial.println("team number is one of 0,1,2");
+      return;
+    }
+
+    // Read the LED count
+    arg = strtok_r(NULL, " ", &tok);
+    if (arg == NULL) {  
+      Serial.println("led count is required");
+      return;
+    }
+    int team_leds = atoi(arg);
+
+    // Enable the LEDs
     for (byte l = 0; l < team_leds; l++) {
       strips[strip]->setPixelColor(led + l, team_colors[team]);
     }
@@ -180,3 +197,5 @@ void exec_strip() {
   }
   strips[strip]->show();
 }
+
+
