@@ -68,7 +68,7 @@ void read_and_exec_cmd() {
     if (c == '\n') {
       exec_cmd();
     } else {
-      Serial.println("command too long");
+      Serial.println  ("command too long");
     }
     
     // Done executing or buffer is full before newline
@@ -79,53 +79,57 @@ void read_and_exec_cmd() {
 }
 
 void exec_cmd() {
+  boolean ok = false;
   char * tok = NULL;
   const char * cmd_name = strtok_r(cmd, " ", &tok);
-  if (strcmp(cmd, "strip") == 0) {
-    exec_strip(tok);
-  } else if (strcmp(cmd, "flash") == 0) {
-    exec_flash(tok);
-  } else if (strcmp(cmd, "help") == 0) {
-    Serial.println("strip <strip_num> <team_num> <leds> <team_num> <leds> <team_num> <leds>");
-    Serial.println("flash <strip_num>");
-    Serial.println("help");
+  if (cmd_name[0] == 's') {
+    ok = exec_score(tok);
+  } else if (cmd_name[0] == 'f') {
+    ok = exec_flash(tok);
+  } else if (cmd_name[0] == 'p') {
+    // the "ok" is the result
+    ok = true;
+  } else if (cmd_name[0] == 'h') {
+    Serial.println("f(lash) s");
+    Serial.println("h(elp)");
+    Serial.println("s(core) s t # t # t #");
+    Serial.println("p(ing)");   
+    ok = true;
+  }
+
+  if (ok) {
+    Serial.println("ok");
   } else {
-    Serial.print("unknown command: ");
-    Serial.println(cmd);
-  }  
+    Serial.println("err");
+  }
 }
 
-void usage(const char * usage) {
-  Serial.print("usage: ");
-  Serial.println(usage);
-}
-
-void exec_flash(char * tok) {
+boolean exec_flash(char * tok) {
   // Read strip number
   char * arg = strtok_r(NULL, " ", &tok);
   if (arg == NULL) {  
-    Serial.println("strip number is required");
-    return;
+    Serial.println("strip required");
+    return false;
   }
   int strip = atoi(arg);
   if (strip > 3) {
-    Serial.println("strip number is one of 0,1,2,3");
-    return;
+    Serial.println("strip is 0,1,2,3");
+    return false;
   }
-  flash(*score_strips[strip], Adafruit_NeoPixel::Color(255, 255, 0), 10, 100);
+  flash(*score_strips[strip], Adafruit_NeoPixel::Color(255, 255, 0), 5, 80);
 }
 
-void exec_strip(char * tok) {
+boolean exec_score(char * tok) {
   // Read strip number
   char * arg = strtok_r(NULL, " ", &tok);
   if (arg == NULL) {  
-    Serial.println("strip number is required");
-    return;
+    Serial.println("strip required");
+    return false;
   }
   int strip = atoi(arg);
   if (strip > 3) {
-    Serial.println("strip number is one of 0,1,2,3");
-    return;
+    Serial.println("strip is 0,1,2,3");
+    return false;
   }
 
   byte led = 0;
@@ -134,20 +138,20 @@ void exec_strip(char * tok) {
     // Read the team
     arg = strtok_r(NULL, " ", &tok);
     if (arg == NULL) {  
-      Serial.println("team number is required");
-      return;
+      Serial.println("team required");
+      return false;
     }
     int team = atoi(arg);
     if (team > 2) {
-      Serial.println("team number is one of 0,1,2");
-      return;
+      Serial.println("team is 0,1,2");
+      return false;
     }
 
     // Read the LED count
     arg = strtok_r(NULL, " ", &tok);
     if (arg == NULL) {  
-      Serial.println("led count is required");
-      return;
+      Serial.println("led # required");
+      return false;
     }
     int team_leds = atoi(arg);
 
@@ -163,6 +167,7 @@ void exec_strip(char * tok) {
     score_strips[strip]->setPixelColor(l, 0, 0, 0);
   }
   score_strips[strip]->show();
+  return true;
 }
 
 void flash(Adafruit_NeoPixel & strip, uint32_t color, byte times, unsigned long delay_ms) {
