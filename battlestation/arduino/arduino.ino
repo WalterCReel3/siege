@@ -21,34 +21,34 @@
 
 #include "Adafruit_NeoPixel.h"
 
-static Adafruit_NeoPixel * strips[4];
-static byte strip_pins[4] = {4, 5, 6, 7};
-static byte strip_leds[4] = {60, 60, 60, 60};
+#define SCORE_STRIPS 4
+#define SCORE_STRIP_LEDS 60
 
-static uint32_t team_colors[3];
+static Adafruit_NeoPixel * score_strips[SCORE_STRIPS];
+static byte score_pins[] = {4, 5, 6, 8};
+
+#define TEAMS 3
+static uint32_t team_colors[TEAMS];
 
 static char cmd[32];
 static byte cmd_idx = 0;
 
 void setup() {
   Serial.begin(115200);
-  
-  for (byte i = 0; i < 4; i++) {
-    strips[i] = new Adafruit_NeoPixel(strip_leds[i], strip_pins[i], NEO_GRB + NEO_KHZ800);
-    strips[i]->begin();
-    strips[i]->show();
-  }
 
-  for (byte i = 0; i < sizeof(strips); i++) {
-    for (byte p = 0; p < strip_leds[i]; p++) {
-      strips[i]->setPixelColor(p, 0, 0, 0);
-    }
-    strips[i]->show();
-  }
-  
   team_colors[0] = Adafruit_NeoPixel::Color(255, 0, 0);
   team_colors[1] = Adafruit_NeoPixel::Color(0, 255, 0);
   team_colors[2] = Adafruit_NeoPixel::Color(0, 0, 255);
+  
+  for (byte i = 0; i < SCORE_STRIPS; i++) {
+    score_strips[i] = new Adafruit_NeoPixel(SCORE_STRIP_LEDS, score_pins[i], NEO_GRB + NEO_KHZ800);    
+    score_strips[i]->begin();
+    for (byte l = 0; l < SCORE_STRIP_LEDS; l++) {
+      score_strips[i]->setPixelColor(l, 0, 0, 0);
+    }
+    score_strips[i]->show();
+  }
+  flash(*score_strips[0], Adafruit_NeoPixel::Color(0, 0, 0), 10, 20);
 }
 
 void loop() {
@@ -81,16 +81,13 @@ void read_and_exec_cmd() {
 void exec_cmd() {
   char * tok = NULL;
   const char * cmd_name = strtok_r(cmd, " ", &tok);
-  if (strcmp(cmd_name, "teams") == 0) {
-    exec_teams(tok);
-  } else if (strcmp(cmd, "team") == 0) {
-    exec_team(tok);
-  } else if (strcmp(cmd, "strip") == 0) {
+  if (strcmp(cmd, "strip") == 0) {
     exec_strip(tok);
+  } else if (strcmp(cmd, "flash") == 0) {
+    exec_flash(tok);
   } else if (strcmp(cmd, "help") == 0) {
-    Serial.println("teams");
-    Serial.println("team <team_num> <r> <g> <b>");
     Serial.println("strip <strip_num> <team_num> <leds> <team_num> <leds> <team_num> <leds>");
+    Serial.println("flash <strip_num>");
     Serial.println("help");
   } else {
     Serial.print("unknown command: ");
@@ -103,49 +100,19 @@ void usage(const char * usage) {
   Serial.println(usage);
 }
 
-int read_int(char * text, byte digits) {
-  char s[digits + 1];
-  byte i;
-  for (i = 0; i < digits; i++) {
-   s[i] = text[i];
-  }
-  s[i] = 0;
-  return atoi(s);
-}
-
-void exec_teams(char * tok){
-  for (byte i = 0; i < 3; i++) {
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.print((team_colors[i] >> 16) & 0xff, DEC);
-    Serial.print(" ");
-    Serial.print((team_colors[i] >> 8) & 0xff, DEC);
-    Serial.print(" ");
-    Serial.print((team_colors[i]) & 0xff, DEC);
-    Serial.println();
-  }
-}
-
-void exec_team(char * tok) {
-  // Read team number
+void exec_flash(char * tok) {
+  // Read strip number
   char * arg = strtok_r(NULL, " ", &tok);
   if (arg == NULL) {  
-    Serial.println("team number is required");
+    Serial.println("strip number is required");
     return;
   }
-  int team = atoi(arg);
-  if (team > 2) {
-    Serial.println("team number is one of 0,1,2");
+  int strip = atoi(arg);
+  if (strip > 3) {
+    Serial.println("strip number is one of 0,1,2,3");
     return;
   }
-  // Read colors
-  arg = strtok_r(NULL, " ", &tok);
-  int r = atoi(arg);
-  arg = strtok_r(NULL, " ", &tok);
-  int g = atoi(arg);
-  arg = strtok_r(NULL, " ", &tok);
-  int b = atoi(arg);
-  team_colors[team] = Adafruit_NeoPixel::Color(r, g, b);
+  flash(*score_strips[strip], Adafruit_NeoPixel::Color(255, 255, 0), 10, 100);
 }
 
 void exec_strip(char * tok) {
@@ -156,8 +123,8 @@ void exec_strip(char * tok) {
     return;
   }
   int strip = atoi(arg);
-  if (strip > 2) {
-    Serial.println("strip number is one of 0,1,2");
+  if (strip > 3) {
+    Serial.println("strip number is one of 0,1,2,3");
     return;
   }
 
@@ -186,16 +153,42 @@ void exec_strip(char * tok) {
 
     // Enable the LEDs
     for (byte l = 0; l < team_leds; l++) {
-      strips[strip]->setPixelColor(led + l, team_colors[team]);
+      score_strips[strip]->setPixelColor(led + l, team_colors[team]);
     }
     led += team_leds;
   }
   
   // Black out remaining leds
   for (byte l = led; l < 60; l++) {
-    strips[strip]->setPixelColor(l, 0, 0, 0);
+    score_strips[strip]->setPixelColor(l, 0, 0, 0);
   }
-  strips[strip]->show();
+  score_strips[strip]->show();
 }
 
+void flash(Adafruit_NeoPixel & strip, uint32_t color, byte times, unsigned long delay_ms) {
+  uint32_t old_colors[SCORE_STRIP_LEDS];
+  for (byte i = 0; i < SCORE_STRIP_LEDS; i++) {
+    old_colors[i] = strip.getPixelColor(i);
+  }
+  
+  // Flash
+  for (int j = 0; j < times; j++) {
+    for (byte i = 0; i < SCORE_STRIP_LEDS; i++) {
+      strip.setPixelColor(i, color);
+    }
+    strip.show();
+    
+    delay(delay_ms);
+    
+    for (byte i = 0; i < SCORE_STRIP_LEDS; i++) {
+      strip.setPixelColor(i, old_colors[i]);
+    }
+    strip.show();
+    
+    // Skip this delay the last time
+    if (j < times - 1) {
+      delay(delay_ms / 2);
+    }
+  }
+}
 
