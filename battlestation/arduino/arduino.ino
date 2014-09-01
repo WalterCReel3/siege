@@ -30,7 +30,7 @@ static byte score_pins[] = {4, 5, 6, 8};
 #define TEAMS 3
 static uint32_t team_colors[TEAMS];
 
-static char cmd[32];
+static char cmd[20];
 static byte cmd_idx = 0;
 
 void setup() {
@@ -44,6 +44,7 @@ void setup() {
     score_strips[i] = new Adafruit_NeoPixel(SCORE_STRIP_LEDS, score_pins[i], NEO_GRB + NEO_KHZ800);    
     score_strips[i]->begin();
     for (byte l = 0; l < SCORE_STRIP_LEDS; l++) {
+      score_strips[i]->setBrightness(l, 255);
       score_strips[i]->setPixelColor(l, 0, 0, 0);
     }
     score_strips[i]->show();
@@ -82,14 +83,14 @@ void exec_cmd() {
   boolean ok = false;
   char * tok = NULL;
   const char * cmd_name = strtok_r(cmd, " ", &tok);
-  if (cmd_name[0] == 's') {
+  if (strcmp(cmd_name, "s") == 0) {
     ok = exec_score(tok);
-  } else if (cmd_name[0] == 'f') {
+  } else if (strcmp(cmd_name, "f") == 0) {
     ok = exec_flash(tok);
-  } else if (cmd_name[0] == 'p') {
+  } else if (strcmp(cmd_name, "p") == 0) {
     // the "ok" is the result
     ok = true;
-  } else if (cmd_name[0] == 'h') {
+  } else if (strcmp(cmd_name, "h") == 0) {
     Serial.println("f(lash) s");
     Serial.println("h(elp)");
     Serial.println("s(core) s t # t # t #");
@@ -117,6 +118,7 @@ boolean exec_flash(char * tok) {
     return false;
   }
   flash(*score_strips[strip], Adafruit_NeoPixel::Color(255, 255, 0), 5, 80);
+  return true;
 }
 
 boolean exec_score(char * tok) {
