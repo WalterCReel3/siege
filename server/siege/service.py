@@ -57,6 +57,7 @@ def run(the_config):
     config = the_config
 
     app.secret_key = config['flask']['session_secret_key']
+    app.debug = config['flask']['debug']
     # app.redis = redis.StrictRedis(host='localhost', port=6379, db=0)
 
     # Cookie serializer
@@ -78,8 +79,6 @@ def run(the_config):
     import siege.views
 
     populate_initial_data(config, db)
-
-    # socketio.run(app, host=config['flask']['bind'], debug=config['flask']['debug'])
 
     gevent.spawn(game_management_greenlet)
     socketio.run(app, host=config['flask']['bind'])

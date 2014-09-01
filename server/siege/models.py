@@ -26,7 +26,8 @@ def unixtime(dt):
 class Device(db.Model):
     __tablename__ = 'devices'
     id = Column(Text, primary_key=True, default=new_id)
-    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
+    created_at = Column(DateTime, nullable=False,
+                        default=datetime.datetime.utcnow())
     rank = Column(Integer, default=0)
     bonus = Column(BigInteger, default=0)
     comment = Column(Text)
@@ -44,11 +45,20 @@ class Device(db.Model):
                     bonus=self.bonus,
                     comment=self.comment)
 
+    @staticmethod
+    def create(remote_addr, user_agent):
+        comment = '%s, %s' % (remote_addr, user_agent)
+        new_device = Device(comment=comment)
+        db.session.add(new_device)
+        db.session.commit()
+        return new_device
+
 
 class Game(db.Model):
     __tablename__ = 'games'
     id = Column(Text, primary_key=True, default=new_id)
-    started_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
+    started_at = Column(DateTime, nullable=False,
+                        default=datetime.datetime.utcnow())
     ended_at = Column(DateTime, nullable=True)
 
     players = relation('Player', backref='game')

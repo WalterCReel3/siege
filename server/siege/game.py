@@ -2,7 +2,7 @@ import math
 import gevent
 
 class GameManager(object):
-    
+
     def __init__(self, socketio):
         # Keep a handle to socketio in order to emit events
         self.socketio = socketio

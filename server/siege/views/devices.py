@@ -24,13 +24,9 @@ def devices_get(device_id):
 
 @app.route('/devices', methods=['POST'])
 def devices_create():
-    comment = '%s, %s' % (request.remote_addr, request.user_agent)
-
-    new_device = Device(comment=comment)
-    db.session.add(new_device)
-    db.session.commit()
-
+    new_device = Device.create(request.remote_addr, request.user_agent)
     response = jsonate(new_device.to_dict())
     response.status_code = 201
-    response.headers['Location'] = url_for('devices_get', device_id=new_device.id)
+    response.headers['Location'] = url_for(
+            'devices_get', device_id=new_device.id)
     return response
