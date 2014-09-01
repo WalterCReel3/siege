@@ -16,6 +16,13 @@ from siege.service import app, db, socketio
 def index():
     return render_template('scoring.html')
 
-@socketio.on('click-event', namespace='/test')
+@socketio.on('click-event', namespace='/game')
 def click_event(message):
-    emit('game-update', message, namespace='/test', broadcast=True)
+    from siege.service import game_manager
+    # Required for an "attack-input"
+    # Player-ID
+    # Territory-ID
+    if not game_manager:
+        print 'Game manager not initialized here...'
+        return
+    game_manager.register_click(message)

@@ -33,7 +33,10 @@ _.extend(Clan.prototype, {
     },
 
     tick: function() {
-        this.points -= Math.ceil(this.points * 0.008);
+        this.points -= Math.ceil(this.points * 0.01);
+        if (this.points < 20) {
+            this.points = 0;
+        }
     }
 });
 
@@ -46,9 +49,10 @@ _.extend(Application.prototype, {
         this.clan1Score = $("#clan-1-score");
         this.clan2Score = $("#clan-2-score");
         this.totalScore = $("#total-score");
+        this.namespace = '/game';
         this.socket = io.connect(
                 '//' + document.domain +
-                ':'  + location.port + '/test');
+                ':'  + location.port + this.namespace);
         this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
 
@@ -84,13 +88,13 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
-        var id = msg.id;
-        var power = msg.power;
-        var clan = this.clans[id];
-        clan.points += power;
+        var clans = msg.clans;
+        for (var i=0;i<clans.length;i++) {
+            this.clans[i].points = clans[i];
+        }
     },
 
-    factionAttack: function(id, power) {
+    clanAttack: function(id, power) {
         this.socket.emit('click-event', {'id': id, 'power':power});
     },
 
@@ -98,13 +102,13 @@ _.extend(Application.prototype, {
         var key = String.fromCharCode(evt.charCode);
         switch (key) {
         case 'q':
-            this.factionAttack(0, 100);
+            this.clanAttack(0, 100);
             break;
         case 'r':
-            this.factionAttack(1, 100);
+            this.clanAttack(1, 100);
             break;
         case 'u':
-            this.factionAttack(2, 100);
+            this.clanAttack(2, 100);
             break;
         }
     },
@@ -135,6 +139,9 @@ _.extend(Application.prototype, {
     },
 
     tick: function() {
+        // Evaluated by the server
+        // stimulate the natural decay before
+        // the next update from the server
         _.each(this.clans, function(clan) {
             clan.tick();
         });
@@ -150,7 +157,7 @@ _.extend(Application.prototype, {
     onCanvasClick: function(evt) {
         // var scenePos = this.translateScenePosition(evt);
         // this.newActor(scenePos);
-        this.factionAttack(0, 100);
+        this.clanAttack(0, 100);
     }
 });
 
