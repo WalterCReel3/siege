@@ -1,6 +1,8 @@
 import math
 import gevent
 
+from siege.models import Game
+
 class GameManager(object):
 
     def __init__(self, socketio):
@@ -26,6 +28,9 @@ class GameManager(object):
         # and transition states/notify clients appropriately
         while True:
             gevent.sleep(0.20)
+            current_game = Game.current()
+            if not current_game:
+                current_game = Game.create()
             self.evaluate_control()
             msg = dict(clans=self.clan_power)
             self.socketio.emit('game-update', msg, namespace='/game')

@@ -64,10 +64,6 @@ class Game(db.Model):
     players = relation('Player', backref='game')
     points = relation('Points', backref='game')
 
-    @staticmethod
-    def current():
-        return Game.query.filter_by(ended_at=None).order_by(Game.started_at).limit(1).first()
-
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -78,13 +74,28 @@ class Game(db.Model):
                     endedAt=unixtime(self.ended_at),
                     numPlayers=len(self.players))
 
+    @staticmethod
+    def current():
+        return (Game.query.filter_by(ended_at=None)
+                          .order_by(Game.started_at)
+                          .limit(1)
+                          .first())
+
+    @staticmethod
+    def create():
+        ret = Game()
+        db.session.add(ret)
+        db.session.commit()
+        return ret
+
 
 class Player(db.Model):
     __tablename__ = 'players'
     id = Column(Text, primary_key=True, default=new_id)
     game_id = Column(Text, ForeignKey('games.id'), nullable=False)
     device_id = Column(Text, ForeignKey('devices.id'), nullable=False)
-    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
+    created_at = Column(DateTime, nullable=False,
+                        default=datetime.datetime.utcnow())
     clan = Column(Integer, nullable=False)
     current_territory = Column(Integer, nullable=True)
     comment = Column(Text)

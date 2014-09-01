@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+  {% block content %}
+    <div class="row">
+      <div class="large-12 columns" style="background-color: #eee">
+        <h3>Click Siege!</h3>
+      </div>
+    </div>
+    <div class="row">
+      <div class="large-4 columns" style="background-color: #fee">
+        <h4>Join Racoons</h4>
+      </div>
+      <div class="large-4 columns" style="background-color: #efe">
+        <h4>Join Squirrels</h4>
+      </div>
+      <div class="large-4 columns" style="background-color: #eef">
+        <h4>Join Chimps</h4>
+      </div>
+    </div>
+    <div class="row">
+      <div class="large-4 columns">
+        <span id="message"></span>
+      </div>
+      <div class="large-4 columns">
+      </div>
+      <div class="large-4 columns">
+      </div>
+    </div>
+  {% endblock %}
+  {% block js_includes %} 
+  <script src="/static/js/title.js"></script>
+  {% endblock %}
