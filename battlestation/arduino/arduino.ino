@@ -30,9 +30,6 @@ static byte score_pins[] = {4, 5, 6, 8};
 #define TEAMS 3
 static uint32_t team_colors[TEAMS];
 
-static char cmd[20];
-static byte cmd_idx = 0;
-
 void setup() {
   Serial.begin(115200);
 
@@ -44,7 +41,7 @@ void setup() {
     score_strips[i] = new Adafruit_NeoPixel(SCORE_STRIP_LEDS, score_pins[i], NEO_GRB + NEO_KHZ800);    
     score_strips[i]->begin();
     for (byte l = 0; l < SCORE_STRIP_LEDS; l++) {
-      score_strips[i]->setBrightness(l, 255);
+      score_strips[i]->setBrightness(255);
       score_strips[i]->setPixelColor(l, 0, 0, 0);
     }
     score_strips[i]->show();
@@ -57,6 +54,9 @@ void loop() {
 }
 
 void read_and_exec_cmd() {
+  static char cmd[20];
+  static byte cmd_idx = 0;
+
   while (Serial.available()) {
     char c = Serial.read();
     boolean clear = false;
@@ -67,6 +67,7 @@ void read_and_exec_cmd() {
     }
 
     if (c == '\n') {
+      cmd[cmd_idx] = 0;
       exec_cmd();
     } else {
       Serial.println  ("command too long");
@@ -79,7 +80,7 @@ void read_and_exec_cmd() {
   }
 }
 
-void exec_cmd() {
+void exec_cmd(const char * cmd) {
   boolean ok = false;
   char * tok = NULL;
   const char * cmd_name = strtok_r(cmd, " ", &tok);
