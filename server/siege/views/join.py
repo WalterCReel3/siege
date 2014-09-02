@@ -1,30 +1,46 @@
 import json
+import random
 
+from flask import abort
 from flask import render_template
 from flask import request
 from flask import make_response
-from flask.helpers import flash
 from flask import redirect
-from flask import url_for
 from flask import session
-from flask import Response
-from flask import jsonify
-from flask.ext.socketio import emit
 
-from siege.service import app, db, socketio
+from siege.service import app, config
 from siege.decorators import ensure_device
 from siege.models import Device
+from siege.models import Game
+from siege.models import Player
 
 
-@app.route('/join-game')
-def game_join_prompt():
-    response = make_response(render_template('index.html'))
-    if not request.cookies.get('device_id'):
-            new_device = Device.create(request.remote_addr,
-                                       request.user_agent)
-            response.set_cookie('device_id', new_device.id)
-    return response
+# @app.route('/clan/<clan_id>')
+# @ensure_device
+# def game_joined(clan_id):
+#     response = make_response(render_template('clan-joined.html'))
+#     return response
 
 
-@app.route('/join-game', methods=['POST'])
+@app.route('/game/join')
+@ensure_device
 def game_join():
+    device_id = request.cookies.get('device_id')
+    device = Device.query.get(device_id)
+    if not device:
+        abort(403, 'No device found')
+
+    player = Player.current(device.id)
+    if player:
+        return redirect('/game', code=302)
+
+    current_game = Game.current()
+    if not current_game:
+        abort(404, 'No current game')
+
+    clan = random.choice(config['clans'])
+    territory = 0
+    player = Player.create(current_game.id, device.id, clan, territory)
+
+    return redirect('/game', code=302)
+

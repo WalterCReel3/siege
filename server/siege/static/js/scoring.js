@@ -17,7 +17,7 @@ _.extend(Scene.prototype, {
             object.render(g);
             g.restore();
         });
-    }, 
+    },
 
     addObject: function(obj) {
         this.objects.push(obj);
@@ -45,9 +45,6 @@ _.extend(Application.prototype, {
     initialize: function() {
         this.element = $('#application');
         this.canvas = $('#canvas');
-        this.clan0Score = $("#clan-0-score");
-        this.clan1Score = $("#clan-1-score");
-        this.clan2Score = $("#clan-2-score");
         this.totalScore = $("#total-score");
         this.namespace = '/game';
         this.socket = io.connect(
@@ -75,7 +72,6 @@ _.extend(Application.prototype, {
     bindEvents: function() {
         this.socket.on('game-update', _.bind(this.onGameEvent, this));
         this.canvas.on('click', _.bind(this.onCanvasClick, this));
-        $(window).on('keypress', _.bind(this.onKeyPress, this));
         $(window).on('beforeunload', _.bind(this.onDestroy, this));
     },
 
@@ -88,29 +84,15 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
-        var clans = msg.clans;
+        var clans = msg[0].clans;
+        console.log(clans)
         for (var i=0;i<clans.length;i++) {
             this.clans[i].points = clans[i];
         }
     },
 
-    clanAttack: function(id, power) {
-        this.socket.emit('click-event', {'id': id, 'power':power});
-    },
-
-    onKeyPress: function(evt) {
-        var key = String.fromCharCode(evt.charCode);
-        switch (key) {
-        case 'q':
-            this.clanAttack(0, 100);
-            break;
-        case 'r':
-            this.clanAttack(1, 100);
-            break;
-        case 'u':
-            this.clanAttack(2, 100);
-            break;
-        }
+    clanAttack: function() {
+        this.socket.emit('click-event', {});
     },
 
     calcControl: function() {
@@ -132,9 +114,6 @@ _.extend(Application.prototype, {
     },
 
     renderStats: function() {
-        this.clan0Score.text(this.clans[0].points);
-        this.clan1Score.text(this.clans[1].points);
-        this.clan2Score.text(this.clans[2].points);
         this.totalScore.text(this.totalPoints);
     },
 

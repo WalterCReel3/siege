@@ -23,14 +23,3 @@ def index():
                                        request.user_agent)
             response.set_cookie('device_id', new_device.id)
     return response
-
-@socketio.on('click-event', namespace='/game')
-def click_event(message):
-    from siege.service import game_manager
-    # Required for an "attack-input"
-    # Device-ID
-    # Territory-ID
-    if not game_manager:
-        print 'Game manager not initialized here...'
-        return
-    game_manager.register_click(message)

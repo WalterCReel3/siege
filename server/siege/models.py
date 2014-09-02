@@ -113,6 +113,25 @@ class Player(db.Model):
                     currentTerritory=self.current_territory,
                     comment=self.comment)
 
+    @staticmethod
+    def current(device_id):
+        game = Game.current()
+        if not game:
+            return None
+        q = Player.query.filter_by(game_id=game.id, device_id=device_id)
+        ret = q.first()
+        return ret
+
+    @staticmethod
+    def create(game_id, device_id, clan_id, territory_id):
+        ret = Player(game_id=game_id,
+                     device_id=device_id,
+                     clan=clan_id,
+                     current_territory=territory_id)
+        db.session.add(ret)
+        db.session.commit()
+        return ret
+
 
 class Points(db.Model):
     __tablename__ = 'points'
@@ -126,3 +145,20 @@ class Points(db.Model):
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    @staticmethod
+    def score(game_id, territory, points):
+        # Must lock table to ensure atomicity for the upsert hack.
+        db.session.execute(
+                'begin;'
+                'lock table points in share row exclusive mode;'
+                'with upsert as '
+                '(update points set points = points + :points '
+                    'where game_id = :game_id '
+                    'and territory = :territory returning *) '
+                'insert into points (id, game_id, territory, points) '
+                'select :id, :game_id, :territory, :points '
+                    'where not exists (select * from upsert);'
+                'commit;',
+                dict(id=new_id(), points=points, game_id=game_id,
+                     territory=territory))

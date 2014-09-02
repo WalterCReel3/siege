@@ -25,14 +25,6 @@ def territories(game_id, territory):
         abort(403, 'Player not found')
 
     points = 1 + player.device.bonus
-
-    # Must lock table to ensure atomicity for the upsert hack.
-    db.session.execute('begin;'
-                       'lock table points in share row exclusive mode;'
-                       'with upsert as (update points set points = points + :points where game_id = :game_id and territory = :territory returning *) '
-                       'insert into points (id, game_id, territory, points) '
-                       'select :id, :game_id, :territory, :points where not exists (select * from upsert);'
-                       'commit;',
-                       dict(id=new_id(), points=points, game_id=game.id, territory=territory))
+    Points.score(game.id, territory, points)
 
     return Response(status=200)
