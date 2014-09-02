@@ -1,3 +1,4 @@
+import gevent
 from gevent import monkey
 monkey.patch_all()
 
@@ -21,12 +22,13 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
+
 # Loaded by run
 base = None
 config = None
 db = None
 cookie_serializer = None
-
+game_manager = None
 
 
 def populate_initial_data(config, db):
@@ -43,11 +45,19 @@ def populate_initial_data(config, db):
     db.session.commit()
 
 
+def game_management_greenlet():
+    import siege.game
+    global game_manager
+    game_manager = siege.game.GameManager(socketio)
+    game_manager.run()
+
+
 def run(the_config):
     global base, app, config, db, cookie_serializer
     config = the_config
 
     app.secret_key = config['flask']['session_secret_key']
+    app.debug = config['flask']['debug']
     # app.redis = redis.StrictRedis(host='localhost', port=6379, db=0)
 
     # Cookie serializer
@@ -70,5 +80,5 @@ def run(the_config):
 
     populate_initial_data(config, db)
 
-    # socketio.run(app, host=config['flask']['bind'], debug=config['flask']['debug'])
+    gevent.spawn(game_management_greenlet)
     socketio.run(app, host=config['flask']['bind'])

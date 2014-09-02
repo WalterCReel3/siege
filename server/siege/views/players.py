@@ -55,14 +55,10 @@ def players_create(game_id):
     clan = request.json.get('clan', random.choice(config['clans']))
     territory = request.json.get('territory', None)
 
-    player = Player(game_id=game.id,
-                    device_id=device.id,
-                    clan=clan,
-                    territory=territory)
-    db.session.add(player)
-    db.session.commit()
+    player = Player.create(game.id, device.id, clan, territory)
 
     response = jsonate(player.to_dict())
     response.status_code = 201
-    response.headers['Location'] = url_for('players_get', game_id=game.id, player_id=player.id)
+    response.headers['Location'] = url_for(
+            'players_get', game_id=game.id, player_id=player.id)
     return response

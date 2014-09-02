@@ -17,7 +17,7 @@ _.extend(Scene.prototype, {
             object.render(g);
             g.restore();
         });
-    }, 
+    },
 
     addObject: function(obj) {
         this.objects.push(obj);
@@ -33,7 +33,10 @@ _.extend(Clan.prototype, {
     },
 
     tick: function() {
-        this.points -= Math.ceil(this.points * 0.008);
+        this.points -= Math.ceil(this.points * 0.01);
+        if (this.points < 20) {
+            this.points = 0;
+        }
     }
 });
 
@@ -42,13 +45,11 @@ _.extend(Application.prototype, {
     initialize: function() {
         this.element = $('#application');
         this.canvas = $('#canvas');
-        this.clan0Score = $("#clan-0-score");
-        this.clan1Score = $("#clan-1-score");
-        this.clan2Score = $("#clan-2-score");
         this.totalScore = $("#total-score");
+        this.namespace = '/game';
         this.socket = io.connect(
                 '//' + document.domain +
-                ':'  + location.port + '/test');
+                ':'  + location.port + this.namespace);
         this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
 
@@ -71,7 +72,6 @@ _.extend(Application.prototype, {
     bindEvents: function() {
         this.socket.on('game-update', _.bind(this.onGameEvent, this));
         this.canvas.on('click', _.bind(this.onCanvasClick, this));
-        $(window).on('keypress', _.bind(this.onKeyPress, this));
         $(window).on('beforeunload', _.bind(this.onDestroy, this));
     },
 
@@ -84,29 +84,15 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
-        var id = msg.id;
-        var power = msg.power;
-        var clan = this.clans[id];
-        clan.points += power;
-    },
-
-    factionAttack: function(id, power) {
-        this.socket.emit('click-event', {'id': id, 'power':power});
-    },
-
-    onKeyPress: function(evt) {
-        var key = String.fromCharCode(evt.charCode);
-        switch (key) {
-        case 'q':
-            this.factionAttack(0, 100);
-            break;
-        case 'r':
-            this.factionAttack(1, 100);
-            break;
-        case 'u':
-            this.factionAttack(2, 100);
-            break;
+        var clans = msg[0].clans;
+        console.log(clans)
+        for (var i=0;i<clans.length;i++) {
+            this.clans[i].points = clans[i];
         }
+    },
+
+    clanAttack: function() {
+        this.socket.emit('click-event', {});
     },
 
     calcControl: function() {
@@ -128,13 +114,13 @@ _.extend(Application.prototype, {
     },
 
     renderStats: function() {
-        this.clan0Score.text(this.clans[0].points);
-        this.clan1Score.text(this.clans[1].points);
-        this.clan2Score.text(this.clans[2].points);
         this.totalScore.text(this.totalPoints);
     },
 
     tick: function() {
+        // Evaluated by the server
+        // stimulate the natural decay before
+        // the next update from the server
         _.each(this.clans, function(clan) {
             clan.tick();
         });
@@ -150,7 +136,7 @@ _.extend(Application.prototype, {
     onCanvasClick: function(evt) {
         // var scenePos = this.translateScenePosition(evt);
         // this.newActor(scenePos);
-        this.factionAttack(0, 100);
+        this.clanAttack(0, 100);
     }
 });
 
