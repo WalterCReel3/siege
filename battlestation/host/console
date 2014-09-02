@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 #
+# A super simple serial console for manually debugging the battlestation
+# Arduino program.
+#
 # Needs pyserial (pip install pyserial or apt-get install python-serial).
 
 import os
