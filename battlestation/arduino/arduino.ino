@@ -40,11 +40,13 @@ void setup() {
   for (byte i = 0; i < SCORE_STRIPS; i++) {
     score_strips[i] = new Adafruit_NeoPixel(SCORE_STRIP_LEDS, score_pins[i], NEO_GRB + NEO_KHZ800);    
     score_strips[i]->begin();
+    /*
     for (byte l = 0; l < SCORE_STRIP_LEDS; l++) {
       score_strips[i]->setBrightness(255);
       score_strips[i]->setPixelColor(l, 0, 0, 0);
     }
     score_strips[i]->show();
+    */
   }
   flash(*score_strips[0], Adafruit_NeoPixel::Color(0, 0, 0), 10, 20);
 }
