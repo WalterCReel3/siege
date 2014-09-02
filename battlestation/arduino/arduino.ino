@@ -68,9 +68,9 @@ void read_and_exec_cmd() {
 
     if (c == '\n') {
       cmd[cmd_idx] = 0;
-      exec_cmd();
+      exec_cmd(cmd);
     } else {
-      Serial.println  ("command too long");
+      Serial.print("command too long\n");
     }
     
     // Done executing or buffer is full before newline
@@ -80,7 +80,7 @@ void read_and_exec_cmd() {
   }
 }
 
-void exec_cmd(const char * cmd) {
+void exec_cmd(char * cmd) {
   boolean ok = false;
   char * tok = NULL;
   const char * cmd_name = strtok_r(cmd, " ", &tok);
@@ -92,30 +92,36 @@ void exec_cmd(const char * cmd) {
     // the "ok" is the result
     ok = true;
   } else if (strcmp(cmd_name, "h") == 0) {
-    Serial.println("f(lash) s");
-    Serial.println("h(elp)");
-    Serial.println("s(core) s t # t # t #");
-    Serial.println("p(ing)");   
+    Serial.print("f(lash) s\n");
+    Serial.print("h(elp)\n");
+    Serial.print("s(core) s t # t # t #\n");
+    Serial.print("p(ing)\n");
     ok = true;
   }
 
   if (ok) {
-    Serial.println("ok");
+    Serial.print("ok\n");
   } else {
-    Serial.println("err");
+    Serial.print("err\n");
   }
 }
+
+static const char * e_strip_required = "strip required\n";
+static const char * e_strip_nums = "strip is 0,1,2,3\n";
+static const char * e_team_required = "team required\n";
+static const char * e_team_nums = "team is 0,1,2\n";
+static const char * e_led_required = "led # required\n";
 
 boolean exec_flash(char * tok) {
   // Read strip number
   char * arg = strtok_r(NULL, " ", &tok);
   if (arg == NULL) {  
-    Serial.println("strip required");
+    Serial.print(e_strip_required);
     return false;
   }
   int strip = atoi(arg);
   if (strip > 3) {
-    Serial.println("strip is 0,1,2,3");
+    Serial.print(e_strip_nums);
     return false;
   }
   flash(*score_strips[strip], Adafruit_NeoPixel::Color(255, 255, 0), 5, 80);
@@ -126,12 +132,12 @@ boolean exec_score(char * tok) {
   // Read strip number
   char * arg = strtok_r(NULL, " ", &tok);
   if (arg == NULL) {  
-    Serial.println("strip required");
+    Serial.print(e_strip_required);
     return false;
   }
   int strip = atoi(arg);
   if (strip > 3) {
-    Serial.println("strip is 0,1,2,3");
+    Serial.print(e_strip_nums);
     return false;
   }
 
@@ -141,19 +147,19 @@ boolean exec_score(char * tok) {
     // Read the team
     arg = strtok_r(NULL, " ", &tok);
     if (arg == NULL) {  
-      Serial.println("team required");
+      Serial.print(e_team_required);
       return false;
     }
     int team = atoi(arg);
     if (team > 2) {
-      Serial.println("team is 0,1,2");
+      Serial.print(e_team_nums);
       return false;
     }
 
     // Read the LED count
     arg = strtok_r(NULL, " ", &tok);
     if (arg == NULL) {  
-      Serial.println("led # required");
+      Serial.print(e_led_required);
       return false;
     }
     int team_leds = atoi(arg);
