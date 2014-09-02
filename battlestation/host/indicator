@@ -4,13 +4,17 @@
 # on the light towers, then sends it to the Arduino program over a serial
 # connection.
 #
-# Needs pyserial (pip install pyserial or apt-get install python-serial).
+# Requires:
+#
+# pyserial==2.6
+# socketIO-client==0.5.3
+# websocket-client==0.17.0
 
-import random
 import sys
-import time
 import serial
+import logging
 
+from socketIO_client import SocketIO, BaseNamespace
 
 def shake_hands(serial_file):
     for attempt in range(10):
@@ -52,23 +56,20 @@ def normalize(scores, max):
     summation = sum(scores)
     new_scores = []
     for score in scores:
-        val = (float(score) / summation) * max
-        val = int(round(val))
+        if summation == 0:
+            val = 0
+        else:
+            val = (float(score) / summation) * max
+            val = int(round(val))
         new_scores.append(val)
     return new_scores
 
 
-# TODO get these from the server in whatever format
-def get_territory_info():
-    return {
-        0: {'points': [random.uniform(0, 100), random.uniform(0, 100), random.uniform(0, 100)]},
-        1: {'points': [1000, 2000, 3000]},
-        2: {'points': [1000, 2000, 3000]},
-        3: {'points': [1000, 2000, 3000]},
-    }
-
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger()
+
     if len(sys.argv) < 2:
         sys.stderr.write('usage: %s /dev/ttyUSBn speed\n' % sys.argv[0])
         sys.exit(1)
@@ -78,25 +79,38 @@ if __name__ == "__main__":
     with serial.Serial(serial_dev, speed, timeout=1) as serial_file:
         shake_hands(serial_file)
 
-        # TODO invert this control
-        previous_raw_points = {}
-        while True:
-            for territory, info in get_territory_info().iteritems():
-                raw_points = info['points']
+        # Handles the socket.io events
+        class GameNamespace(BaseNamespace):
+            def __init__(self, transport, path):
+                BaseNamespace.__init__(self, transport, path)
+                self._previous_raw_points = {}
 
-                # If the points changed since last time, flash the strip
-                flash = previous_raw_points.get(territory, raw_points) != raw_points
+            def on_event(self, name, data):
+                if name == 'game-update':
+                    try:
+                        self._on_game_update(data)
+                    except Exception as err:
+                        logger.error('error handling game update: %s', str(err))
 
-                # Update the right proportion of LEDs for each team's points
-                scaled_points = normalize(raw_points, 60)
-                execute(serial_file, 's %d 0 %d 1 %d 2 %d' %
-                        (territory, scaled_points[0], scaled_points[1], scaled_points[2]))
+            def _on_game_update(self, data):
+                for territory, info in data.iteritems():
+                    territory = int(territory)
+                    raw_points = info['clans']
 
-                # Flash if it was different
-                if flash:
-                    execute(serial_file, 'f %d' % territory)
+                    # If the points changed since last time, flash the strip
+                    flash = self._previous_raw_points.get(territory, raw_points) != raw_points
 
-                previous_raw_points[territory] = raw_points
+                    # Update the right proportion of LEDs for each team's points
+                    scaled_points = normalize(raw_points, 60)
+                    execute(serial_file, 's %d 0 %d 1 %d 2 %d' %
+                            (territory, scaled_points[0], scaled_points[1], scaled_points[2]))
 
-                # TODO remove
-                time.sleep(random.uniform(1, 7))
+                    # Flash if it was different
+                    if False and flash:
+                        execute(serial_file, 'f %d' % territory)
+
+                    self._previous_raw_points[territory] = raw_points
+
+        with SocketIO('clicksiege.com', 80) as socketIO:
+            game = socketIO.define(GameNamespace, '/game')
+            socketIO.wait()
