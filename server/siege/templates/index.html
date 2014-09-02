@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+  {% block content %}
+    <div class="row">
+      <div class="large-12 columns" style="background-color: #eee">
+        <h3>Click Siege!</h3>
+	<a href="/game/join">Join Game!</a>
+      </div>
+    </div>
+    <div class="row">
+      <div class="large-4 columns">
+        <span id="message"></span>
+      </div>
+      <div class="large-4 columns">
+      </div>
+      <div class="large-4 columns">
+      </div>
+    </div>
+  {% endblock %}
+  {% block js_includes %} 
+  <script src="/static/js/title.js"></script>
+  {% endblock %}
