@@ -47,9 +47,10 @@ _.extend(Application.prototype, {
         this.canvas = $('#canvas');
         this.totalScore = $("#total-score");
         this.namespace = '/game';
-        this.socket = io.connect(
-                '//' + document.domain +
-                ':'  + location.port + this.namespace);
+
+        this.adjustCanvas();
+
+        this.socket = io.connect(this.socketConnectionString());
         this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
 
@@ -69,9 +70,18 @@ _.extend(Application.prototype, {
         this.totalPoints = 0;
     },
 
+    socketConnectionString: function () {
+        return '//' + document.domain + ':'  + location.port + this.namespace;
+    },
+
+    adjustCanvas: function (canvas) {
+        this.canvas.attr('width', window.innerWidth);
+        this.canvas.attr('height', window.innerHeight - 2);
+    },
+
     bindEvents: function() {
         this.socket.on('game-update', _.bind(this.onGameEvent, this));
-        this.canvas.on('click', _.bind(this.onCanvasClick, this));
+        $(window).on('touchstart', _.bind(this.onCanvasClick, this));
         $(window).on('beforeunload', _.bind(this.onDestroy, this));
     },
 
@@ -91,9 +101,9 @@ _.extend(Application.prototype, {
         }
     },
 
-    clanAttack: function() {
+    clanAttack: _.debounce(function() {
         this.socket.emit('click-event', {});
-    },
+    }, 100, true),
 
     calcControl: function() {
         this.totalPoints = _.reduce(this.clans, function(acc, clan) {

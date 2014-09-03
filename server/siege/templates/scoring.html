@@ -1,10 +1,13 @@
 {% extends "base.html" %}
   {% block title %}Territory{% endblock %}
   {% block content %}
-      <div class="large-12 columns">
-        <h3>Territory Control</h3>
-        <canvas style="border:1px solid #ccc" width="500" height="400" id="canvas">Canvas support required</canvas>
-      </div>
+    <div class="title-header">
+      Territory Control
+    </div>
+    <canvas id="canvas">Canvas support required</canvas>
+    <div class="help-button">
+      Tap Me!
+    </div>
   {% endblock %}
   {% block js_includes %} 
   <script src="/static/js/pichart.js"></script>
