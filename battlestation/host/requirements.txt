@@ -1,0 +1,2 @@
+pyserial==2.6
+socketIO-client==0.5.3

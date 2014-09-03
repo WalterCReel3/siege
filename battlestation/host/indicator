@@ -1,14 +1,8 @@
-# !/usr/bin/env python
+#!/usr/bin/env python
 #
 # Receives score information from the Siege server and formats it for display
 # on the light towers, then sends it to the Arduino program over a serial
 # connection.
-#
-# Requires:
-#
-# pyserial==2.6
-# socketIO-client==0.5.3
-# websocket-client==0.17.0
 
 import sys
 import serial
