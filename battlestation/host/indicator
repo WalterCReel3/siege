@@ -10,6 +10,8 @@ import logging
 
 from socketIO_client import SocketIO, BaseNamespace
 
+
+# Try hard to connect to the Arduino device
 def shake_hands(serial_file):
     for attempt in range(10):
         print('shaking hands with indicator device...')
@@ -46,21 +48,22 @@ def execute(serial_file, command):
             return False
 
 
-def normalize(scores, max):
+# Normalizes the sequence of scores against the specified maximum value
+def normalize(scores, max_value):
     summation = sum(scores)
     new_scores = []
     for score in scores:
         if summation == 0:
             val = 0
         else:
-            val = (float(score) / summation) * max
+            val = (float(score) / summation) * max_value
             val = int(round(val))
         new_scores.append(val)
     return new_scores
 
 
-
-if __name__ == "__main__":
+# Does the thing
+def main():
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger()
 
@@ -79,8 +82,9 @@ if __name__ == "__main__":
                 BaseNamespace.__init__(self, transport, path)
                 self._previous_raw_points = {}
 
-            def on_event(self, name, data):
-                if name == 'game-update':
+            def on_event(self, event, *args):
+                if event == 'game-update':
+                    data = args[0]
                     try:
                         self._on_game_update(data)
                     except Exception as err:
@@ -106,5 +110,9 @@ if __name__ == "__main__":
                     self._previous_raw_points[territory] = raw_points
 
         with SocketIO('clicksiege.com', 80) as socketIO:
-            game = socketIO.define(GameNamespace, '/game')
+            socketIO.define(GameNamespace, '/game')
             socketIO.wait()
+
+
+if __name__ == "__main__":
+    main()
