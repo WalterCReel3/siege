@@ -38,12 +38,13 @@ _.extend(PiChart.prototype, {
         this.radius = rad;
 
         this.wedges = [];
-        this.wedgeColors = [];
+        this.wedgeColors = [[255, 78, 78],
+                            [78, 255, 78],
+                            [78, 78, 255]];
         this.nWedges = n;
 
         for (var i=0; i<this.nWedges; i++) {
             this.wedges.push(0.0);
-            this.wedgeColors.push(randcolor());
         }
 
         this.rings = 6;
@@ -101,10 +102,11 @@ _.extend(PiChart.prototype, {
         }, 0);
         var buffer = (unclaimed * Math.PI * 2) / this.wedges.length;
         for (var i=0; i<this.wedges.length; i++) {
-            if (this.wedges[i] === 0) continue;
             var arc = this.wedges[i] * Math.PI * 2 + last;
-            this.renderWedge(
-                    g, last, arc, rgbaString(this.wedgeColors[i]));
+            if (this.wedges[i] !== 0) {
+                this.renderWedge(g, last, arc,
+                                 rgbaString(this.wedgeColors[i]));
+            }
             last = arc + buffer;
         }
     }
