@@ -14,7 +14,7 @@ _.extend(Application.prototype, {
             navigator.geolocation.getCurrentPosition(
                     _.bind(this.getCurrentPosition, this));
         } else {
-            this.messageElement.text('No location info');
+            this.messageElement.val('No location info');
         }
     },
 
@@ -25,9 +25,10 @@ _.extend(Application.prototype, {
     getCurrentPosition: function(position) {
         var msg = this.nameInput.val() + 
                   " (" + position.coords.latitude + 
-                  ") (" + position.coords.longitude + ")<br>"
+                  ") (" + position.coords.longitude + ")\n"
         console.log(msg);
-        this.messageElement.append(msg);
+        var cur = this.messageElement.val();
+        this.messageElement.val(cur + msg);
     }
 });
 
