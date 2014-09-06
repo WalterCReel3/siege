@@ -1,3 +1,11 @@
+var LogoUrls = [
+'/static/images/racoons-logo.png',
+'/static/images/squirrels-logo.png',
+'/static/images/chimps-logo.png',
+];
+
+var Logos = [];
+
 var Scene = klass.create();
 _.extend(Scene.prototype, {
     initialize: function(app, canvas) {
@@ -24,6 +32,21 @@ _.extend(Scene.prototype, {
     }
 });
 
+var TeamLogo = klass.create();
+_.extend(TeamLogo.prototype, {
+    initialize: function(app) {
+        this.application = app;
+    },
+
+    render: function(g) {
+        var image = Logos[0];
+        var clan = this.application.player.clan;
+        var x = this.application.scene.width - image.width;
+        var y = 5;
+        g.drawImage(Logos[clan], x, 5);
+    }
+});
+
 var Clan = klass.create();
 _.extend(Clan.prototype, {
     initialize: function(id) {
@@ -43,31 +66,42 @@ _.extend(Clan.prototype, {
 var Application = klass.create();
 _.extend(Application.prototype, {
     initialize: function() {
+        // DOM handles and setup
         this.element = $('#application');
         this.canvas = $('#canvas');
         this.totalScore = $("#total-score");
         this.tapButton = $("#tap-button");
-        this.namespace = '/game';
-
         this.adjustCanvas();
 
+        // Event streaming
+        this.namespace = '/game';
         this.socket = io.connect(this.socketConnectionString());
+
+        // Graphics and gameloop
         this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
 
+        // UI event management
         this.bindEvents();
 
+        // UI element setup
         var chartPos = [this.scene.width/2, this.scene.height/2];
         this.chart = new PiChart(this, chartPos, 100, 3);
+        this.teamLogo = new TeamLogo(this);
         this.scene.addObject(this.chart);
+        this.scene.addObject(this.teamLogo);
 
+        // Client side game state management
+        this.game = null;
+        this.device = null;
+        this.player = null;
         this.clans = [];
         this.nclans = 3;
-
         for (var i=0; i<3; i++) {
             this.clans.push(new Clan(i));
         }
 
+        this.loadAssets();
         this.totalPoints = 0;
     },
 
@@ -87,12 +121,31 @@ _.extend(Application.prototype, {
         $(window).on('beforeunload', _.bind(this.onDestroy, this));
     },
 
+    loadAssets: function() {
+        // Load Images
+        for (var i=0; i<3; i++) {
+            var image = new Image();
+            image.src = LogoUrls[i];
+            console.log(image);
+            Logos.push(image);
+        }
+    },
+
     onDestroy: function() {
         this.socket.disconnect()
     },
 
     run: function() {
-        this.tasklet.run();
+        var self = this;
+        $.ajax({url:'/game/info'}).then(function(resp) {
+            console.log(resp);
+            self.game = resp.game;
+            self.device = resp.device;
+            self.player = resp.player;
+            self.tasklet.run();
+        }).fail(function(error) {
+            console.log(error);
+        });
     },
 
     onGameEvent: function(msg) {

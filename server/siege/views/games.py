@@ -21,6 +21,12 @@ def games_get(game_id):
     return jsonate(game.to_dict())
 
 
+@app.route('/games/current')
+def game_current():
+    game = Game.current()
+    return jsonate(game.to_dict())
+
+
 @app.route('/games/<game_id>', methods=['DELETE'])
 def games_stop(game_id):
     game = get_game_or_abort(game_id)
