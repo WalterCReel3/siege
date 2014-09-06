@@ -12,7 +12,25 @@ import datetime
 from socketIO_client import SocketIO, BaseNamespace
 
 
-# Handles the socket.io events
+# Handles events on the root namespace
+class RootNamespace(BaseNamespace):
+    def __init__(self, transport, path):
+        BaseNamespace.__init__(self, transport, path)
+        self._indicator = None
+
+    @property
+    def indicator(self):
+        return self._indicator
+
+    @indicator.setter
+    def indicator(self, value):
+        self._indicator = value
+
+    def on_disconnect(self):
+        self._indicator.stop = True
+
+
+# Handles the socket.io events for the game
 class GameNamespace(BaseNamespace):
     def __init__(self, transport, path):
         BaseNamespace.__init__(self, transport, path)
@@ -84,15 +102,31 @@ class Indicator(object):
         self._serial_speed = serial_speed
 
         self._serial_file = None
+        self._stop = False
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @stop.setter
+    def stop(self, value):
+        self._stop = value
 
     def run(self):
         with serial.Serial(self._serial_dev, self._serial_speed, timeout=2) as serial_file:
             self._serial_file = serial_file
             self._shake_hands()
+
             with SocketIO('clicksiege.com', 80) as socketIO:
+                root = socketIO.define(RootNamespace)
+                root.indicator = self
+
                 game = socketIO.define(GameNamespace, '/game')
                 game.indicator = self
-                socketIO.wait()
+
+                while not self.stop:
+                    socketIO.wait(seconds=1)
+                self._logger.info('socket.io client stopped')
 
     # Try hard to connect to the Arduino device
     def _shake_hands(self):
