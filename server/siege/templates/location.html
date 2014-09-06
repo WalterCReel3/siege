@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+  {% block content %}
+    <div class="row">
+      <div class="large-12 columns">
+        <span id="message"></span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="large-4 columns">
+        Name: <input type="text" id="name" value=""></span>
+        <input type="button" id="fetch" value="Fetch Location"></span>
+      </div>
+    </div>
+  {% endblock %}
+  {% block js_includes %} 
+  <script src="/static/js/location.js"></script>
+  {% endblock %}

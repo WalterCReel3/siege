@@ -46,6 +46,7 @@ _.extend(Application.prototype, {
         this.element = $('#application');
         this.canvas = $('#canvas');
         this.totalScore = $("#total-score");
+        this.tapButton = $("#tap-button");
         this.namespace = '/game';
 
         this.adjustCanvas();
@@ -81,8 +82,8 @@ _.extend(Application.prototype, {
 
     bindEvents: function() {
         this.socket.on('game-update', _.bind(this.onGameEvent, this));
+        this.tapButton.on('mousedown', _.bind(this.onCanvasClick, this));
         $(window).on('touchstart', _.bind(this.onCanvasClick, this));
-        // $(window).on('mousedown', _.bind(this.onCanvasClick, this));
         $(window).on('beforeunload', _.bind(this.onDestroy, this));
     },
 
