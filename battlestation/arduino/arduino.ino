@@ -25,7 +25,7 @@
 #define SCORE_STRIP_LEDS 60
 
 static Adafruit_NeoPixel * score_strips[SCORE_STRIPS];
-static byte score_pins[] = {4, 5, 6, 8};
+static byte score_pins[] = {9, 10, 11, 1};
 
 #define TEAMS 3
 static uint32_t team_colors[TEAMS];
@@ -78,7 +78,6 @@ void read_and_exec_cmd() {
     // Done executing or buffer is full before newline
     memset(cmd, 0, sizeof(cmd));
     cmd_idx = 0;
-    Serial.print("> ");
   }
 }
 

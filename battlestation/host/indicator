@@ -7,64 +7,134 @@
 import sys
 import serial
 import logging
+import datetime
 
 from socketIO_client import SocketIO, BaseNamespace
 
 
-# Try hard to connect to the Arduino device
-def shake_hands(serial_file):
-    for attempt in range(10):
-        print('shaking hands with indicator device...')
-        if execute(serial_file, 'p'):
-            print('indicator connected')
-            return True
-    print('could not connect to indicator device')
-    return False
+# Handles the socket.io events
+class GameNamespace(BaseNamespace):
+    def __init__(self, transport, path):
+        BaseNamespace.__init__(self, transport, path)
+        self._logger = logging.getLogger(type(self).__name__)
+        self._previous_raw_points = {}
+        self._last_flash = datetime.datetime(1, 1, 1)
+        self._min_flash_period = datetime.timedelta(seconds=10)
+
+        self._indicator = None
+
+    @property
+    def indicator(self):
+        return self._indicator
+
+    @indicator.setter
+    def indicator(self, value):
+        self._indicator = value
+
+    def on_event(self, event, *args):
+        if event == 'game-update':
+            data = args[0]
+            try:
+                self._on_game_update(data)
+            except Exception as err:
+                self._logger.error('error handling game update: %s', str(err))
+
+    def _on_game_update(self, data):
+        now = datetime.datetime.now()
+
+        for territory, info in data.iteritems():
+            territory = int(territory)
+            raw_points = info['clans']
+
+            # If the points changed since last time, flash the strip
+            flash = self._previous_raw_points.get(territory, raw_points) != raw_points
+
+            # Update the right proportion of LEDs for each team's points
+            scaled_points = GameNamespace.normalize(raw_points, 60)
+            self._indicator.execute('s %d 0 %d 1 %d 2 %d' %
+                                    (territory, scaled_points[0], scaled_points[1], scaled_points[2]))
+
+            # Flash if it was different
+            if flash and (now - self._last_flash) > self._min_flash_period:
+                self._indicator.execute('f %d' % territory)
+                self._last_flash = datetime.datetime.utcnow()
+
+            self._previous_raw_points[territory] = raw_points
+
+    # Normalizes the sequence of scores against the specified maximum value
+    @staticmethod
+    def normalize(scores, max_value):
+        summation = sum(scores)
+        new_scores = []
+        for score in scores:
+            if summation == 0:
+                val = 0
+            else:
+                val = (float(score) / summation) * max_value
+                val = int(round(val))
+            new_scores.append(val)
+        return new_scores
 
 
-# Sends the command to the Arduino and returns True if the command executed
-# successfully, False if there was an error.
-def execute(serial_file, command):
-    # Consume the text prompt or any left-overs from previous commands
-    while serial_file.inWaiting() > 0:
-        serial_file.read()
+class Indicator(object):
+    def __init__(self, serial_dev, serial_speed):
+        self._logger = logging.getLogger(type(self).__name__)
+        self._serial_dev = serial_dev
+        self._serial_speed = serial_speed
 
-    # Communication with the Arduino uses very simple flow control that remains
-    # human friendly for manual debugging.  The host sends a command terminated
-    # by a newline, the command executes, and the Arduino's response is one
-    # or more lines that always ends in a full line of text of "ok" or "err".
-    serial_file.write(command + '\n')
-    serial_file.flush()
-    while True:
-        line = serial_file.readline()
-        if not line:
-            print('timeout waiting for ok ("%s")' % command)
-            return False
+        self._serial_file = None
 
-        line = line.strip()
-        if line == 'ok':
-            return True
-        elif line == 'err':
-            return False
+    def run(self):
+        with serial.Serial(self._serial_dev, self._serial_speed, timeout=2) as serial_file:
+            self._serial_file = serial_file
+            self._shake_hands()
+            with SocketIO('clicksiege.com', 80) as socketIO:
+                game = socketIO.define(GameNamespace, '/game')
+                game.indicator = self
+                socketIO.wait()
 
+    # Try hard to connect to the Arduino device
+    def _shake_hands(self):
+        for attempt in range(10):
+            print('shaking hands with indicator device...')
+            if self.execute('p'):
+                print('indicator connected')
+                return True
+        print('could not connect to indicator device')
+        return False
 
-# Normalizes the sequence of scores against the specified maximum value
-def normalize(scores, max_value):
-    summation = sum(scores)
-    new_scores = []
-    for score in scores:
-        if summation == 0:
-            val = 0
-        else:
-            val = (float(score) / summation) * max_value
-            val = int(round(val))
-        new_scores.append(val)
-    return new_scores
+    # Sends the command to the Arduino and returns True if the command executed
+    # successfully, False if there was an error.
+    def execute(self, command):
+        # Consume the text prompt or any left-overs from previous commands
+        while self._serial_file.inWaiting() > 0:
+            junk = self._serial_file.read()
+            self._logger.debug('read junk: %s', junk.strip())
+
+        # Communication with the Arduino uses very simple flow control that remains
+        # human friendly for manual debugging.  The host sends a command terminated
+        # by a newline, the command executes, and the Arduino's response is one
+        # or more lines that always ends in a full line of text of "ok" or "err".
+        self._serial_file.write(command + '\n')
+        self._logger.debug('write line: %s', command)
+        self._serial_file.flush()
+        while True:
+            line = self._serial_file.readline()
+            self._logger.debug('read line: %s', line.strip())
+            if not line:
+                self._logger.info('timeout waiting for ok ("%s")', command)
+                return False
+
+            line = line.strip()
+            if line == 'ok':
+                return True
+            elif line == 'err':
+                return False
 
 
 # Does the thing
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger()
 
     if len(sys.argv) < 2:
@@ -73,45 +143,9 @@ def main():
 
     serial_dev = sys.argv[1]
     speed = int(sys.argv[2])
-    with serial.Serial(serial_dev, speed, timeout=1) as serial_file:
-        shake_hands(serial_file)
 
-        # Handles the socket.io events
-        class GameNamespace(BaseNamespace):
-            def __init__(self, transport, path):
-                BaseNamespace.__init__(self, transport, path)
-                self._previous_raw_points = {}
-
-            def on_event(self, event, *args):
-                if event == 'game-update':
-                    data = args[0]
-                    try:
-                        self._on_game_update(data)
-                    except Exception as err:
-                        logger.error('error handling game update: %s', str(err))
-
-            def _on_game_update(self, data):
-                for territory, info in data.iteritems():
-                    territory = int(territory)
-                    raw_points = info['clans']
-
-                    # If the points changed since last time, flash the strip
-                    flash = self._previous_raw_points.get(territory, raw_points) != raw_points
-
-                    # Update the right proportion of LEDs for each team's points
-                    scaled_points = normalize(raw_points, 60)
-                    execute(serial_file, 's %d 0 %d 1 %d 2 %d' %
-                            (territory, scaled_points[0], scaled_points[1], scaled_points[2]))
-
-                    # Flash if it was different
-                    if False and flash:
-                        execute(serial_file, 'f %d' % territory)
-
-                    self._previous_raw_points[territory] = raw_points
-
-        with SocketIO('clicksiege.com', 80) as socketIO:
-            socketIO.define(GameNamespace, '/game')
-            socketIO.wait()
+    indicator = Indicator(serial_dev, speed)
+    indicator.run()
 
 
 if __name__ == "__main__":
