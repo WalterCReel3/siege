@@ -40,13 +40,6 @@ void setup() {
   for (byte i = 0; i < SCORE_STRIPS; i++) {
     score_strips[i] = new Adafruit_NeoPixel(SCORE_STRIP_LEDS, score_pins[i], NEO_GRB + NEO_KHZ800);    
     score_strips[i]->begin();
-    /*
-    for (byte l = 0; l < SCORE_STRIP_LEDS; l++) {
-      score_strips[i]->setBrightness(255);
-      score_strips[i]->setPixelColor(l, 0, 0, 0);
-    }
-    score_strips[i]->show();
-    */
   }
   flash(*score_strips[0], Adafruit_NeoPixel::Color(0, 0, 0), 10, 20);
 }
@@ -93,7 +86,7 @@ void exec_cmd(char * cmd) {
     // the "ok" is the result
     ok = true;
   } else if (strcmp(cmd_name, "h") == 0) {
-    Serial.print("f(lash) s\n");
+    Serial.print("f(lash) s count ms\n");
     Serial.print("h(elp)\n");
     Serial.print("s(core) s t # t # t #\n");
     Serial.print("p(ing)\n");
@@ -112,6 +105,8 @@ static const char * e_strip_nums = "strip is 0,1,2,3\n";
 static const char * e_team_required = "team required\n";
 static const char * e_team_nums = "team is 0,1,2\n";
 static const char * e_led_required = "led # required\n";
+static const char * e_count_required = "count required\n";
+static const char * e_ms_required = "ms required\n";
 
 boolean exec_flash(char * tok) {
   // Read strip number
@@ -125,7 +120,21 @@ boolean exec_flash(char * tok) {
     Serial.print(e_strip_nums);
     return false;
   }
-  flash(*score_strips[strip], Adafruit_NeoPixel::Color(255, 255, 0), 5, 80);
+  // Read count
+  arg = strtok_r(NULL, " ", &tok);
+  if (arg == NULL) {  
+    Serial.print(e_count_required);
+    return false;
+  }
+  int count = atoi(arg);
+  // Read milliseconds
+  arg = strtok_r(NULL, " ", &tok);
+  if (arg == NULL) {  
+    Serial.print(e_ms_required);
+    return false;
+  }
+  int ms = atoi(arg);
+  flash(*score_strips[strip], Adafruit_NeoPixel::Color(255, 255, 0), count, ms);
   return true;
 }
 

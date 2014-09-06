@@ -18,8 +18,9 @@ class GameNamespace(BaseNamespace):
         BaseNamespace.__init__(self, transport, path)
         self._logger = logging.getLogger(type(self).__name__)
         self._previous_raw_points = {}
+
         self._last_flash = datetime.datetime(1, 1, 1)
-        self._min_flash_period = datetime.timedelta(seconds=10)
+        self._min_flash_period = datetime.timedelta(seconds=5)
 
         self._indicator = None
 
@@ -40,13 +41,13 @@ class GameNamespace(BaseNamespace):
                 self._logger.error('error handling game update: %s', str(err))
 
     def _on_game_update(self, data):
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
 
         for territory, info in data.iteritems():
             territory = int(territory)
             raw_points = info['clans']
 
-            # If the points changed since last time, flash the strip
+            # If the raw points changed since last time (someone is attacking), flash the strip
             flash = self._previous_raw_points.get(territory, raw_points) != raw_points
 
             # Update the right proportion of LEDs for each team's points
@@ -56,7 +57,7 @@ class GameNamespace(BaseNamespace):
 
             # Flash if it was different
             if flash and (now - self._last_flash) > self._min_flash_period:
-                self._indicator.execute('f %d' % territory)
+                self._indicator.execute('f %d 2 50' % territory)
                 self._last_flash = datetime.datetime.utcnow()
 
             self._previous_raw_points[territory] = raw_points
@@ -134,7 +135,7 @@ class Indicator(object):
 
 # Does the thing
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger()
 
     if len(sys.argv) < 2:
