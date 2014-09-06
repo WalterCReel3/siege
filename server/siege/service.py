@@ -52,6 +52,11 @@ def game_management_greenlet():
     game_manager.run()
 
 
+def get_game_manager():
+    global game_manager
+    return game_manager
+
+
 def run(the_config):
     global base, app, config, db, cookie_serializer
     config = the_config

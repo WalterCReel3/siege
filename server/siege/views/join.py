@@ -4,18 +4,11 @@ from flask import abort
 from flask import request
 from flask import redirect
 
-from siege.service import app, config
+from siege.service import app, config, get_game_manager
 from siege.decorators import ensure_device
 from siege.models import Device
 from siege.models import Game
 from siege.models import Player
-
-
-# @app.route('/clan/<clan_id>')
-# @ensure_device
-# def game_joined(clan_id):
-#     response = make_response(render_template('clan-joined.html'))
-#     return response
 
 
 @app.route('/game/join')
@@ -34,9 +27,8 @@ def game_join():
     if not current_game:
         abort(404, 'No current game')
 
-    clan = random.choice(config['clans'])
-    territory = 0
-    player = Player.create(current_game.id, device.id, clan, territory)
+    game = get_game_manager()
+    game.create_player(device)
 
     return redirect('/game', code=302)
 
