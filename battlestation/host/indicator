@@ -65,9 +65,6 @@ class GameNamespace(BaseNamespace):
                 self._logger.error('error handling game update: %s', str(err))
 
     def _on_game_update(self, data):
-        now = datetime.datetime.now()
-        changed_territories = []
-
         for territory, info in data.iteritems():
             territory = int(territory)
             raw_points = info['clans']
