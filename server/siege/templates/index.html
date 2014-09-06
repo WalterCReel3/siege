@@ -1,18 +1,27 @@
 {% extends "base.html" %}
   {% block content %}
     <div class="row">
-      <div class="large-12 columns" style="background-color: #eee">
-        <h3>Click Siege!</h3>
-	<a href="/game/join">Join Game!</a>
+      <span>&nbsp;</span> <!-- so ghetto -->
+    </div>
+    <div class="row">
+      <div class="large-12 columns">
+        <img data-interchange="[/static/images/logo.png, (default)], [/static/images/logo-large.png, (large)]">
       </div>
     </div>
     <div class="row">
-      <div class="large-4 columns">
-        <span id="message"></span>
+      <div class="large-12 columns" style="padding: 1em">
+	<a href="/game/join" class="button expand radius large">Get Recruited!</a>
       </div>
-      <div class="large-4 columns">
+    </div>
+    <div class="row">
+      <div class="small-4 columns text-center">
+        <img data-interchange="[/static/images/racoons-logo-large.png, (default)], [/static/images/racoons-logo-large.png, (large)]">
       </div>
-      <div class="large-4 columns">
+      <div class="small-4 columns text-center">
+        <img data-interchange="[/static/images/squirrels-logo-large.png, (default)], [/static/images/squirrels-logo-large.png, (large)]">
+      </div>
+      <div class="small-4 columns text-center">
+        <img data-interchange="[/static/images/chimps-logo-large.png, (default)], [/static/images/chimps-logo-large.png, (large)]">
       </div>
     </div>
   {% endblock %}

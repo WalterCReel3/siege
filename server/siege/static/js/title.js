@@ -2,26 +2,11 @@ var Application = klass.create();
 _.extend(Application.prototype, {
     initialize: function() {
         this.element = $('#application');
-        this.messageElement = $("#message");
         // this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
         this.bindEvents();
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                    _.bind(this.getCurrentPosition, this));
-        } else {
-            this.messageElement.text('No location info');
-        }
     },
 
     bindEvents: function() {
-    },
-
-    getCurrentPosition: function(position) {
-        var msg = "Latitude: " + position.coords.latitude + 
-                  " Longitude: " + position.coords.longitude
-        console.log(msg);
-        this.messageElement.text(msg);
     },
 
     onDestroy: function() {
@@ -38,7 +23,6 @@ _.extend(Application.prototype, {
 });
 
 $(document).ready(function () {
-    console.log('here');
     window.application = new Application();
     window.application.run();
 });
