@@ -32,15 +32,21 @@ class RootNamespace(BaseNamespace):
 
 # Handles the socket.io events for the game
 class GameNamespace(BaseNamespace):
+    LEDS_PER_TERRITORY = 60
+    SCORE_PERIOD = datetime.timedelta(milliseconds=100)
+    FLASH_PERIOD = datetime.timedelta(seconds=5)
+
     def __init__(self, transport, path):
         BaseNamespace.__init__(self, transport, path)
         self._logger = logging.getLogger(type(self).__name__)
-        self._previous_raw_points = {}
-
-        self._last_flash = datetime.datetime(1, 1, 1)
-        self._min_flash_period = datetime.timedelta(seconds=5)
-
         self._indicator = None
+
+        # territory => points
+        self._scaled_points = {}
+        # territory => datetime
+        self._next_flash_at = {}
+        # territory => datetime
+        self._next_score_at = {}
 
     @property
     def indicator(self):
@@ -59,26 +65,52 @@ class GameNamespace(BaseNamespace):
                 self._logger.error('error handling game update: %s', str(err))
 
     def _on_game_update(self, data):
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now()
+        changed_territories = []
 
         for territory, info in data.iteritems():
             territory = int(territory)
             raw_points = info['clans']
+            scaled_points = GameNamespace.normalize(raw_points, GameNamespace.LEDS_PER_TERRITORY)
 
-            # If the raw points changed since last time (someone is attacking), flash the strip
-            flash = self._previous_raw_points.get(territory, raw_points) != raw_points
+            if self._score_now(territory):
+                self._indicator.execute('s %d 0 %d 1 %d 2 %d' %
+                                        (territory, scaled_points[0], scaled_points[1], scaled_points[2]))
 
-            # Update the right proportion of LEDs for each team's points
-            scaled_points = GameNamespace.normalize(raw_points, 60)
-            self._indicator.execute('s %d 0 %d 1 %d 2 %d' %
-                                    (territory, scaled_points[0], scaled_points[1], scaled_points[2]))
-
-            # Flash if it was different
-            if flash and (now - self._last_flash) > self._min_flash_period:
+            # Flash if there was a change since the last time
+            if self._flash_now(territory, scaled_points):
                 self._indicator.execute('f %d 2 50' % territory)
-                self._last_flash = datetime.datetime.utcnow()
 
-            self._previous_raw_points[territory] = raw_points
+    def _flash_now(self, territory, scaled_points):
+        # Always update the saved points, but capture the old ones
+        old_scaled_points = self._scaled_points.get(territory, None)
+        self._scaled_points[territory] = scaled_points
+
+        # If the points have not changed, no flashing required and no time to update
+        if old_scaled_points == scaled_points:
+            return False
+
+        # Points changed; see if it's time
+        now = datetime.datetime.now()
+        if territory in self._next_flash_at:
+            val = now >= self._next_flash_at[territory]
+        else:
+            val = True
+
+        if val:
+            self._next_flash_at[territory] = now + GameNamespace.FLASH_PERIOD
+        return val
+
+    def _score_now(self, territory):
+        now = datetime.datetime.now()
+        if territory in self._next_score_at:
+            val = now >= self._next_score_at[territory]
+        else:
+            val = True
+
+        if val:
+            self._next_score_at[territory] = now + GameNamespace.SCORE_PERIOD
+        return val
 
     # Normalizes the sequence of scores against the specified maximum value
     @staticmethod
