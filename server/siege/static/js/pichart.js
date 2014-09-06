@@ -46,7 +46,7 @@ _.extend(PiChart.prototype, {
             this.wedgeColors.push(randcolor());
         }
 
-        this.rings = 10;
+        this.rings = 6;
         this.ringOffset = [];
 
         for (var i=0; i<this.rings; i++) {
@@ -67,6 +67,14 @@ _.extend(PiChart.prototype, {
         }
     },
 
+    capPath: function(g, r, w, h, d) {
+        var h1 = h - (w/2)
+        var x1 = h1 * Math.cos(r) + this.position[0];
+        var y1 = h1 * Math.sin(r) + this.position[1];
+        var r1 = r + Math.PI;
+        g.arc(x1, y1, w/2, r, r1, d);
+    },
+
     renderWedge: function(g, r1, r2, rgba) {
         var ringWidth = (this.radius / (this.rings * 2));
         for (var i = 0; i < this.rings - 2; i++) {
@@ -76,8 +84,10 @@ _.extend(PiChart.prototype, {
             var off = this.ringOffset[i].currentOffset;
             g.arc(this.position[0], this.position[1], ringHeight,
                   r1 + off, r2 + off);
+            this.capPath(g, r2 + off, ringWidth, ringHeight, false);
             g.arc(this.position[0], this.position[1], ringHeight - ringWidth,
                   r2 + off, r1 + off, true);
+            this.capPath(g, r1 + off, ringWidth, ringHeight, true);
             g.fill();
             g.closePath();
         }
@@ -91,6 +101,7 @@ _.extend(PiChart.prototype, {
         }, 0);
         var buffer = (unclaimed * Math.PI * 2) / this.wedges.length;
         for (var i=0; i<this.wedges.length; i++) {
+            if (this.wedges[i] === 0) continue;
             var arc = this.wedges[i] * Math.PI * 2 + last;
             this.renderWedge(
                     g, last, arc, rgbaString(this.wedgeColors[i]));

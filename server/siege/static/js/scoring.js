@@ -81,6 +81,7 @@ _.extend(Application.prototype, {
 
     bindEvents: function() {
         this.socket.on('game-update', _.bind(this.onGameEvent, this));
+        $(window).on('mousedown', _.bind(this.onCanvasClick, this));
         $(window).on('touchstart', _.bind(this.onCanvasClick, this));
         $(window).on('beforeunload', _.bind(this.onDestroy, this));
     },
@@ -95,7 +96,6 @@ _.extend(Application.prototype, {
 
     onGameEvent: function(msg) {
         var clans = msg[0].clans;
-        console.log(clans)
         for (var i=0;i<clans.length;i++) {
             this.clans[i].points = clans[i];
         }
