@@ -6,20 +6,20 @@ from flask import abort
 from flask import Response
 
 from siege.service import app, db, config
-from siege.models import Player, Game, Device
+from siege.models import Player, Device
 from view_utils import jsonate, get_game_or_abort
 
 
 @app.route('/games/<game_id>/players')
 def players_index(game_id):
-    game = get_game_or_abort(game_id)
+    get_game_or_abort(game_id)
     response = jsonate([p.to_dict() for p in Player.query.all()])
     return response
 
 
 @app.route('/games/<game_id>/players/<player_id>')
 def players_get(game_id, player_id):
-    game = get_game_or_abort(game_id)
+    get_game_or_abort(game_id)
     player = Player.query.get(player_id)
     if not player:
         abort(404, 'Player not found')
@@ -29,7 +29,7 @@ def players_get(game_id, player_id):
 
 @app.route('/games/<game_id>/players/<player_id>', methods=['DELETE'])
 def players_delete(game_id, player_id):
-    game = get_game_or_abort(game_id)
+    get_game_or_abort(game_id)
     player = Player.query.get(player_id)
     if not player:
         abort(404, 'Player not found')

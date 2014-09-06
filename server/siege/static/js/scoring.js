@@ -81,8 +81,8 @@ _.extend(Application.prototype, {
 
     bindEvents: function() {
         this.socket.on('game-update', _.bind(this.onGameEvent, this));
-        $(window).on('mousedown', _.bind(this.onCanvasClick, this));
         $(window).on('touchstart', _.bind(this.onCanvasClick, this));
+        // $(window).on('mousedown', _.bind(this.onCanvasClick, this));
         $(window).on('beforeunload', _.bind(this.onDestroy, this));
     },
 
@@ -103,7 +103,7 @@ _.extend(Application.prototype, {
 
     clanAttack: _.debounce(function() {
         this.socket.emit('click-event', {});
-    }, 100, true),
+    }, 50, true),
 
     calcControl: function() {
         this.totalPoints = _.reduce(this.clans, function(acc, clan) {
