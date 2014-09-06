@@ -1,18 +1,8 @@
-import json
-
 from flask import render_template
 from flask import request
 from flask import make_response
-from flask.helpers import flash
-from flask import redirect
-from flask import url_for
-from flask import session
-from flask import Response
-from flask import jsonify
-from flask.ext.socketio import emit
 
-from siege.service import app, db, socketio
-from siege.decorators import ensure_device
+from siege.service import app
 from siege.models import Device
 
 @app.route('/')

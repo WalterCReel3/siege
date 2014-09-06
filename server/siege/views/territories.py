@@ -1,13 +1,10 @@
-import random
-
 from flask import request
-from flask import url_for
 from flask import abort
 from flask import Response
 
-from siege.service import app, db, config
-from siege.models import Player, Game, Device, new_id
-from view_utils import jsonate, get_game_or_abort
+from siege.service import app
+from siege.models import Player, Points
+from view_utils import get_game_or_abort
 
 
 @app.route('/games/<game_id>/territories/<territory>', methods=['POST'])

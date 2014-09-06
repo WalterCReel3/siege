@@ -7,7 +7,8 @@ class UnsupportedContentTypeException(Exception):
     STATUS_CODE = 400
 
     def __init__(self, unsupported_content_type):
-        self.message = 'Content type "%s" is not supported' % unsupported_content_type
+        self.message = ('Content type "%s" is not supported'
+                        % unsupported_content_type)
 
     def to_dict(self):
         return dict(message=self.message)

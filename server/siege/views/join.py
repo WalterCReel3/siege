@@ -1,12 +1,8 @@
-import json
 import random
 
 from flask import abort
-from flask import render_template
 from flask import request
-from flask import make_response
 from flask import redirect
-from flask import session
 
 from siege.service import app, config
 from siege.decorators import ensure_device

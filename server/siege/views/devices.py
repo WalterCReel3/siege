@@ -2,7 +2,7 @@ from flask import request
 from flask import url_for
 from flask import abort
 
-from siege.service import app, db
+from siege.service import app
 from siege.models import Device
 from view_utils import jsonate
 
