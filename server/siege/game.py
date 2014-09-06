@@ -1,4 +1,5 @@
 import math
+import time
 import gevent
 
 from siege.models import Game
@@ -40,8 +41,12 @@ class GameManager(object):
         # Scoring
         self.territories = []
 
-        # Event caching for game loop
+        # Event processing
         self.event_queue = []
+        self.territory_updates = None
+        self.device_updates = None
+
+        # Current game
         self.current_game = None
 
         # Initialize territories
@@ -79,30 +84,34 @@ class GameManager(object):
             return
 
         power = 100 + device.bonus
-        event = ('click', player.id, player.clan,
+        event = ('click', player.device_id, player.id, player.clan,
                  player.current_territory, power)
         self.event_queue.append(event)
 
-    def process_click(self, event, territory_updates):
-        name, pid, cid, tid, p = event
-        if tid not in territory_updates:
-            territory_updates[tid] = {}
-        if cid not in territory_updates[tid]:
-            territory_updates[tid][cid] = 0.0
-        territory_updates[tid][cid] += p
+    def process_click(self, event):
+        name, did, pid, cid, tid, p = event
+        if tid not in self.territory_updates:
+            self.territory_updates[tid] = {}
+        if cid not in self.territory_updates[tid]:
+            self.territory_updates[tid][cid] = 0.0
+        self.territory_updates[tid][cid] += p
+
+        if did not in self.device_updates:
+            self.device_updates[did] = 0
+        self.device_updates[did] += 1
 
     def process_events(self):
-        territory_updates = {}
-        # device_updates = {}
+        self.territory_updates = {}
+        self.device_updates = {}
         # Compress events into sets
         for event in self.event_queue:
             name = event[0]
             if name == 'click':
-                self.process_click(event, territory_updates)
+                self.process_click(event)
         self.event_queue = []
 
         for i, territory in enumerate(self.territories):
-            territory.apply_updates(territory_updates.get(i, {}))
+            territory.apply_updates(self.territory_updates.get(i, {}))
 
     def run(self):
         # This is basically the the game run loop
