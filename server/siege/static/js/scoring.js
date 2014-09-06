@@ -126,7 +126,6 @@ _.extend(Application.prototype, {
         for (var i=0; i<3; i++) {
             var image = new Image();
             image.src = LogoUrls[i];
-            console.log(image);
             Logos.push(image);
         }
     },
@@ -138,7 +137,6 @@ _.extend(Application.prototype, {
     run: function() {
         var self = this;
         $.ajax({url:'/game/info'}).then(function(resp) {
-            console.log(resp);
             self.game = resp.game;
             self.device = resp.device;
             self.player = resp.player;
