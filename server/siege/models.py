@@ -33,8 +33,7 @@ class Device(db.Model):
     comment = Column(Text)
 
     players = relation('Player', backref='device')
-    # TODO: track total clicks from user
-    # total_clicks = Column(BigInteger, default=0)
+    total_clicks = Column(BigInteger, default=0)
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
