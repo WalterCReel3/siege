@@ -144,7 +144,6 @@ class Indicator(object):
         with serial.Serial(self._serial_dev, self._serial_speed, timeout=2) as serial_file:
             self._serial_file = serial_file
             self._shake_hands()
-
             with SocketIO('clicksiege.com', 80) as socketIO:
                 root = socketIO.define(RootNamespace)
                 root.indicator = self
@@ -152,8 +151,15 @@ class Indicator(object):
                 game = socketIO.define(GameNamespace, '/game')
                 game.indicator = self
 
+                fake_heartbeat_interval = datetime.timedelta(seconds=10)
+                last_fake_heartbeat = datetime.datetime(1, 1, 1)
                 while not self.stop:
                     socketIO.wait(seconds=1)
+                    now = datetime.datetime.now()
+                    if now >= last_fake_heartbeat + fake_heartbeat_interval:
+                        socketIO.emit(event='ping')
+                        last_fake_heartbeat = now
+
                 self._logger.info('socket.io client stopped')
 
     # Try hard to connect to the Arduino device
