@@ -65,9 +65,8 @@ class GameNamespace(BaseNamespace):
                 self._logger.error('error handling game update: %s', str(err))
 
     def _on_game_update(self, data):
-        for territory, info in data.iteritems():
-            territory = int(territory)
-            raw_points = info['clans']
+        for territory in range(3):
+            raw_points = data[str(territory)]['clans']
             scaled_points = GameNamespace.normalize(raw_points, GameNamespace.LEDS_PER_TERRITORY)
 
             if self._score_now(territory):
