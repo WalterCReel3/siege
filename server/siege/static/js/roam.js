@@ -20,8 +20,8 @@ _.extend(Application.prototype, {
                     _.bind(this.getCurrentPosition, this),
                     _.bind(this.fail, this),
                     {enableHighAccuracy: true,
-                     maximumAge: 600000,
-                     timeout: 0});
+                     maximumAge: 20000,
+                     timeout: 10000});
         } else {
             this.messageElement.val('No location info');
         }
