@@ -17,7 +17,9 @@ _.extend(Application.prototype, {
     fetchLocation: function() {
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
-                    _.bind(this.getCurrentPosition, this));
+                    _.bind(this.getCurrentPosition, this)
+                    _.bind(this.fail, this),
+                    {enableHighAccuracy: true});
         } else {
             this.messageElement.val('No location info');
         }
@@ -27,6 +29,14 @@ _.extend(Application.prototype, {
         var entry = $(document.createElement('p'));
         var msg = "Latitude: " + position.coords.latitude +
                   " Longitude: " + position.coords.longitude;
+        entry.text(msg);
+        this.messageElement.append(entry);
+        console.log(msg);
+    },
+
+    fail: function() {
+        var entry = $(document.createElement('p'));
+        var msg = "location failure";
         entry.text(msg);
         this.messageElement.append(entry);
         console.log(msg);
