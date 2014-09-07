@@ -8,14 +8,13 @@ import logging
 import contextlib
 import termios
 import time
-import sdl2.keyboard
 
 from socketIO_client import SocketIO, BaseNamespace
 
-COOKIES = {
-    0: {'device_id': 'znemxs63dyddy'},
-    1: {'device_id': 'kjdobbempami4'},
-    2: {'device_id': 'hguxnrsq4vdq4'},
+DEVICES = {
+    0: 'znemxs63dyddy',
+    1: 'kjdobbempami4',
+    2: 'hguxnrsq4vdq4'
 }
 
 # Maps keys to teams.  These are the default chars we get from the Minpac for pin 1-n
@@ -33,35 +32,6 @@ KEYMAP = {
     'k': 2,
     'q': 2,
 }
-
-
-# Nasty monkey-patching hack because the Websocket transport doesn't actually use
-# the fucking cookies I pass to the SocketIO constructor.
-import socket
-import Cookie
-import websocket
-from socketIO_client import ConnectionError
-from socketIO_client.transports import _WebsocketTransport, TIMEOUT_IN_SECONDS
-def _WebsocketTransportInitFix(self, socketIO_session, is_secure, base_url, **kw):
-        super(_WebsocketTransport, self).__init__()
-        url = '%s://%s/websocket/%s' % (
-            'wss' if is_secure else 'ws',
-            base_url, socketIO_session.id)
-        try:
-            # Hack to actually set cookies.
-            cookie = Cookie.SimpleCookie()
-            for key, value in kw.get('cookies', {}).iteritems():
-                cookie[key] = value
-            # Empty header because the websocket class sets it (and skip the leading space)
-            cookie_val = cookie.output(header='')[1:]
-
-            self._connection = websocket.create_connection(url, cookie=cookie_val)
-        except socket.timeout as e:
-            raise ConnectionError(e)
-        except socket.error as e:
-            raise ConnectionError(e)
-        self._connection.settimeout(TIMEOUT_IN_SECONDS)
-_WebsocketTransport.__init__ = _WebsocketTransportInitFix
 
 
 # Handles events on the root namespace
@@ -124,30 +94,22 @@ class Buttons(object):
 
     def run(self):
         with self._non_blocking_term(sys.stdin, echo=False):
-            game_sockets = {}
-            for team in range(3):
-                c = SocketIO('clicksiege.com', port=80, cookies=COOKIES[team], headers=dict(foo='bar'))
-                root = c.define(RootNamespace)
+            with SocketIO('clicksiege.com', port=80) as socketIO:
+                root = socketIO.define(RootNamespace)
                 root.buttons = self
-                game = c.define(GameNamespace, '/game')
-                game_sockets[team] = game
+                game = socketIO.define(GameNamespace, '/game')
+                while not self.stop:
+                    char = sys.stdin.read(1)
+                    if char:
+                        team = KEYMAP.get(char, None)
+                        if team is not None:
+                            self._logger.debug('team %d on territory %d', team, 0)
+                            game.emit('click-event', dict(device_id=DEVICES[team], territory=0))
+                        else:
+                            self._logger.error('key "%s" (dec %d) is not mapped to a team', char, ord(char))
 
-            while not self.stop:
-                char = sys.stdin.read(1)
-                if char:
-                    team = KEYMAP.get(char, None)
-                    if team is not None:
-                        self._logger.debug('team %d on territory %d', team, 0)
-                        game_sockets[team].emit('click-event', {})
-                    else:
-                        self._logger.error('key "%s" (dec %d) is not mapped to a team', char, ord(char))
-
-                # Read occasionally so we can detect timeouts
-                # for c in connections.values():
-                #     c.wait(0.01)
-
-                # Small sleep so we don't burn down the house
-                time.sleep(0.0001)
+                    # Small sleep so we don't burn down the house
+                    time.sleep(0.0001)
 
 
 # Does the thing
