@@ -6,7 +6,7 @@ from operator import itemgetter
 from siege.models import Game
 from siege.models import Device
 from siege.models import Player
-
+from siege.service import config
 
 class Territory(object):
 
@@ -142,6 +142,13 @@ class GameManager(object):
                 clan_players.append(player)
                 self.players_by_clan[clan_id] = clan_players
 
+    def init_game(self):
+        game = Game.create()
+        # add the players defined inthe game template
+        for p in config['game_template']['players']:
+            Player.create(game.id, p['device_id'], p['clan'], p['territory'])
+        return game
+
     def run(self):
         # This is basically the the game run loop
         # This will evaluate the current state according
@@ -153,7 +160,7 @@ class GameManager(object):
             if not self.current_game:
                 self.load_game()
             if not self.current_game:
-                self.current_game = Game.create()
+                self.current_game = self.init_game()
 
             self.process_events()
 

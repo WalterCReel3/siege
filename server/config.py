@@ -41,11 +41,11 @@ config = {
     # A new game starts with these entities
     'game_template': {
         'players': [
-            {'device_id': 'znemxs63dyddy', 'comment': 'First battlestation'},
+            {'device_id': 'znemxs63dyddy', 'clan': 0, 'territory': 0},
             # Second battlestation
-            {'device_id': 'kjdobbempami4', 'comment': 'Second battlestation'},
+            {'device_id': 'kjdobbempami4', 'clan': 1, 'territory': 0},
             # Third battlestation
-            {'device_id': 'hguxnrsq4vdq4', 'comment': 'Third battlestation'}
+            {'device_id': 'hguxnrsq4vdq4', 'clan': 2, 'territory': 0}
         ]
     },
 
