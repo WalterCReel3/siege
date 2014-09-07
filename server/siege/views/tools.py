@@ -9,3 +9,8 @@ from siege.models import Device
 def location():
     response = make_response(render_template('location.html'))
     return response
+
+@app.route('/_roam')
+def roam():
+    response = make_response(render_template('roam.html'))
+    return response
