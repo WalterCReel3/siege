@@ -129,14 +129,15 @@ class GameManager(object):
     def load_game(self):
         # Get current game
         self.current_game = Game.current()
-        # get players
-        players = Player.query.filter_by(game_id=self.current_game.id)
-        for player in players:
-            clan_id = player.clan
-            self.players[player.device_id] = player
-            clan_players = self.players_by_clan.get(clan_id, [])
-            clan_players.append(player)
-            self.players_by_clan[clan_id] = clan_players
+        # get players if there is a game
+        if self.current_game:
+            players = Player.query.filter_by(game_id=self.current_game.id)
+            for player in players:
+                clan_id = player.clan
+                self.players[player.device_id] = player
+                clan_players = self.players_by_clan.get(clan_id, [])
+                clan_players.append(player)
+                self.players_by_clan[clan_id] = clan_players
 
     def run(self):
         # This is basically the the game run loop
