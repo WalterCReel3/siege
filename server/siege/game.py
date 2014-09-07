@@ -87,7 +87,7 @@ class GameManager(object):
         player = Player.create(self.current_game.id, device.id, clan,
                                territory)
 
-    def register_click(self, device_id):
+    def register_click(self, device_id, territory):
         device = self.get_device(device_id)
         if not device:
             return
@@ -96,9 +96,12 @@ class GameManager(object):
         if not player:
             return
 
+        if territory is None:
+            territory = player.current_territory
+
         power = 100 + device.bonus
         event = ('click', player.device_id, player.id, player.clan,
-                 player.current_territory, power)
+                 territory, power)
         self.event_queue.append(event)
 
     def process_click(self, event):
