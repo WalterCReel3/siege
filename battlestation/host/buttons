@@ -8,39 +8,145 @@ import logging
 import contextlib
 import termios
 import time
+import sdl2.keyboard
+
+from socketIO_client import SocketIO, BaseNamespace
+
+COOKIES = {
+    0: {'device_id': 'znemxs63dyddy'},
+    1: {'device_id': 'kjdobbempami4'},
+    2: {'device_id': 'hguxnrsq4vdq4'},
+}
+# Maps keys to teams
+KEYMAP = {
+    'a': 0,
+    'b': 0,
+    'c': 0,
+
+    'x': 1,
+    'y': 1,
+    'z': 1,
+
+    '1': 2,
+    '2': 2,
+    '3': 2,
+}
+
+
+# Nasty monkey-patching hack because the Websocket transport doesn't actually use
+# the fucking cookies I pass to the SocketIO constructor.
+import socket
+import Cookie
+import websocket
+from socketIO_client import ConnectionError
+from socketIO_client.transports import _WebsocketTransport, TIMEOUT_IN_SECONDS
+def _WebsocketTransportInitFix(self, socketIO_session, is_secure, base_url, **kw):
+        super(_WebsocketTransport, self).__init__()
+        url = '%s://%s/websocket/%s' % (
+            'wss' if is_secure else 'ws',
+            base_url, socketIO_session.id)
+        try:
+            # Hack to actually set cookies.
+            cookie = Cookie.SimpleCookie()
+            for key, value in kw.get('cookies', {}).iteritems():
+                cookie[key] = value
+            # Empty header because the websocket class sets it (and skip the leading space)
+            cookie_val = cookie.output(header='')[1:]
+
+            self._connection = websocket.create_connection(url, cookie=cookie_val)
+        except socket.timeout as e:
+            raise ConnectionError(e)
+        except socket.error as e:
+            raise ConnectionError(e)
+        self._connection.settimeout(TIMEOUT_IN_SECONDS)
+_WebsocketTransport.__init__ = _WebsocketTransportInitFix
+
+
+# Handles events on the root namespace
+class RootNamespace(BaseNamespace):
+    def __init__(self, transport, path):
+        BaseNamespace.__init__(self, transport, path)
+        self._buttons = None
+
+    @property
+    def buttons(self):
+        return self._buttons
+
+    @buttons.setter
+    def buttons(self, value):
+        self._buttons = value
+
+    def on_disconnect(self):
+        self._buttons.stop = True
+
+
+class GameNamespace(BaseNamespace):
+    def __init__(self, transport, path):
+        BaseNamespace.__init__(self, transport, path)
+        self._logger = logging.getLogger(type(self).__name__)
+
 
 class Buttons(object):
     def __init__(self):
         self._logger = logging.getLogger(type(self).__name__)
+        self._stop = False
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @stop.setter
+    def stop(self, value):
+        self._stop = value
 
     @contextlib.contextmanager
     def _non_blocking_term(self, f, echo=True):
         fd = f.fileno()
-        old_attr = termios.tcgetattr(fd)
-        new_attr = termios.tcgetattr(fd)
-        new_attr[3] = new_attr[3] & ~termios.ICANON
-        if not echo:
-            new_attr[3] = new_attr[3] & ~termios.ECHO
-        new_attr[6][termios.VMIN] = 0
-        new_attr[6][termios.VTIME] = 0
+        old_attr = None
         try:
+            old_attr = termios.tcgetattr(fd)
+            new_attr = termios.tcgetattr(fd)
+            new_attr[3] = new_attr[3] & ~termios.ICANON
+            if not echo:
+                new_attr[3] = new_attr[3] & ~termios.ECHO
+            new_attr[6][termios.VMIN] = 0
+            new_attr[6][termios.VTIME] = 0
             termios.tcsetattr(fd, termios.TCSANOW, new_attr)
             yield
+        except termios.error as err:
+            self._logger.warn('error setting nonblocking terminal: %s', str(err))
+            yield
         finally:
-            termios.tcsetattr(fd, termios.TCSAFLUSH, old_attr)
+            if old_attr:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_attr)
 
     def run(self):
         with self._non_blocking_term(sys.stdin, echo=False):
-            while True:
-                c = sys.stdin.read(1)
-                if c:
-                    self._handle_key(c)
+            game_sockets = {}
+            for team in range(3):
+                c = SocketIO('clicksiege.com', port=80, cookies=COOKIES[team], headers=dict(foo='bar'))
+                root = c.define(RootNamespace)
+                root.buttons = self
+                game = c.define(GameNamespace, '/game')
+                game_sockets[team] = game
 
-            # Small sleep so we don't burn down the house
-            time.sleep(0.001)
+            while not self.stop:
+                char = sys.stdin.read(1)
+                if char:
+                    team = KEYMAP.get(char, None)
+                    if team is not None:
+                        self._logger.debug('team %d on territory %d', team, 0)
+                        game_sockets[team].emit('click-event', {})
+                    else:
+                        self._logger.error('key "%s" is not mapped to a team', char)
 
-    def _handle_key(self, key):
-        self._logger.debug('%s', key)
+                # Read occasionally so we can detect timeouts
+                # for c in connections.values():
+                #     c.wait(0.01)
+
+                # Small sleep so we don't burn down the house
+                time.sleep(0.0001)
+
 
 # Does the thing
 def main():
