@@ -4,6 +4,7 @@
 # Seige server.
 
 import sys
+import datetime
 import logging
 import contextlib
 import termios
@@ -98,6 +99,9 @@ class Buttons(object):
                 root = socketIO.define(RootNamespace)
                 root.buttons = self
                 game = socketIO.define(GameNamespace, '/game')
+
+                fake_heartbeat_interval = datetime.timedelta(seconds=10)
+                last_fake_heartbeat = datetime.datetime(1, 1, 1)
                 while not self.stop:
                     char = sys.stdin.read(1)
                     if char:
@@ -107,6 +111,11 @@ class Buttons(object):
                             game.emit('click-event', dict(device_id=DEVICES[team], territory=0))
                         else:
                             self._logger.error('key "%s" (dec %d) is not mapped to a team', char, ord(char))
+
+                    now = datetime.datetime.now()
+                    if now >= last_fake_heartbeat + fake_heartbeat_interval:
+                        game.emit(event='ping')
+                        last_fake_heartbeat = now
 
                     # Small sleep so we don't burn down the house
                     time.sleep(0.0001)

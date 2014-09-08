@@ -157,7 +157,7 @@ class Indicator(object):
                     socketIO.wait(seconds=1)
                     now = datetime.datetime.now()
                     if now >= last_fake_heartbeat + fake_heartbeat_interval:
-                        socketIO.emit(event='ping')
+                        game.emit(event='ping')
                         last_fake_heartbeat = now
 
                 self._logger.info('socket.io client stopped')
