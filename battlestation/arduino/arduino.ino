@@ -25,7 +25,7 @@
 #define SCORE_STRIP_LEDS 60
 
 static Adafruit_NeoPixel * score_strips[SCORE_STRIPS];
-static byte score_pins[] = {9, 10, 11, 1};
+static byte score_pins[] = {9, 10, 11, 12};
 
 #define TEAMS 3
 static uint32_t team_colors[TEAMS];
