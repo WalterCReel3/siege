@@ -63,14 +63,118 @@ _.extend(Clan.prototype, {
     }
 });
 
+var LocationData = {
+    coordinates: [
+        [35.858074,-78.898278], // 0 nw
+        [35.858118,-78.895671], // 1 ne
+        [35.856848,-78.898321], // 2 owltown w
+        [35.856961,-78.8958],   // 3 owltown e
+        [35.855761,-78.898664], // 4 talking rock w
+        [35.855683,-78.896819], // 5 river bottom e
+        [35.856178,-78.896036], // 6 pickett brach ee
+        [35.854526,-78.898847], // 7 sw
+        [35.854361,-78.895993], // 8 se
+    ],
+    regions: [
+        { name: 'North', indexes: [0, 2, 3, 1] },
+        { name: 'Middle', indexes: [2, 4, 5, 6, 3] },
+        { name: 'South', indexes: [4, 7, 8, 5] },
+    ]
+};
+
+var GeoTracking = klass.create();
+_.extend(GeoTracking.prototype, {
+    initialize: function(application, locationData) {
+        this.application = application;
+        this.locationData = locationData;
+        this.enabled = false;
+        this.currentRegion = -1;
+        if (navigator.geolocation) {
+            this.tasklet = new Tasklet(_.bind(this.fetchLocation, this), 5000);
+        } else {
+            this.currentRegion = 0;
+        }
+    },
+    
+    pointInPolygon: function(point, poly) {
+        var points = this.locationData.coordinates;
+        // unpack the point coords
+        var x = point[0];
+        var y = point[1];
+    
+        var inside = false;
+        for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            // get the line segment coords
+            var x1 = points[poly[i]][0];
+            var y1 = points[poly[i]][1];
+            var x2 = points[poly[j]][0];
+            var y2 = points[poly[j]][1];
+            var intersect = ((y1 > y) != (y2 > y))
+                             && (x < (x2 - x1) * (y - y1) / (y2 - y1) + x1);
+            if (intersect) {
+                // even/odd rule
+                inside = !inside;
+            }
+        }
+    
+        return inside;
+    },
+
+    fetchLocation: function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                    _.bind(this.getCurrentPosition, this),
+                    _.bind(this.fail, this),
+                    {enableHighAccuracy: true,
+                     maximumAge: 20000,
+                     timeout: 10000});
+        }
+    },
+
+    findRegion: function(position) {
+        var point = [position.coords.latitude, position.coords.longitude];
+        var regions = this.locationData.regions;
+        for (var i=0; i<regions.length; i++) {
+            if (this.pointInPolygon(point, regions[i].indexes)) {
+                return i;
+            }
+        }
+        return -1;
+    },
+
+    getCurrentPosition: function(position) {
+        var regionId = this.findRegion(position);
+        if ((regionId != -1) && (regionId != this.currentRegion)) {
+            this.currentRegion = regionId;
+            var region = this.locationData.regions[regionId];
+            console.log(region.name);
+            this.application.updateTerritory(region.name, regionId);
+        }
+        // var debug = "Latitude: " + position.coords.latitude +
+        //             " Longitude: " + position.coords.longitude +
+        //             " Accuracy: " + position.coords.accuracy;
+        // console.log(debug);
+    },
+
+    fail: function() {
+        var msg = "location failure";
+        console.log(msg);
+    },
+
+    run: function() {
+        this.tasklet.run();
+    }
+});
+
 var Application = klass.create();
 _.extend(Application.prototype, {
     initialize: function() {
         // DOM handles and setup
         this.element = $('#application');
         this.canvas = $('#canvas');
-        this.totalScore = $("#total-score");
-        this.tapButton = $("#tap-button");
+        this.totalScore = $('#total-score');
+        this.tapButton = $('#tap-button');
+        this.territoryName = $('#territory-name');
         this.adjustCanvas();
 
         // Event streaming
@@ -90,6 +194,9 @@ _.extend(Application.prototype, {
         this.teamLogo = new TeamLogo(this);
         this.scene.addObject(this.chart);
         this.scene.addObject(this.teamLogo);
+
+        // GeoTracking
+        this.geoTracking = new GeoTracking(this, LocationData);
 
         // Client side game state management
         this.game = null;
@@ -135,6 +242,7 @@ _.extend(Application.prototype, {
     },
 
     run: function() {
+        this.geoTracking.run();
         var self = this;
         $.ajax({url:'/game/info'}).then(function(resp) {
             self.game = resp.game;
@@ -156,6 +264,10 @@ _.extend(Application.prototype, {
     clanAttack: _.debounce(function() {
         this.socket.emit('click-event', {});
     }, 50, true),
+
+    updateTerritory: function(name, id) {
+        this.territoryName.text(name);
+    },
 
     calcControl: function() {
         this.totalPoints = _.reduce(this.clans, function(acc, clan) {
