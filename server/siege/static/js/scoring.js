@@ -88,11 +88,10 @@ _.extend(GeoTracking.prototype, {
         this.application = application;
         this.locationData = locationData;
         this.enabled = false;
-        this.currentRegion = -1;
+        this.currentRegion = 0;
+        this.setRegion(0);
         if (navigator.geolocation) {
             this.tasklet = new Tasklet(_.bind(this.fetchLocation, this), 5000);
-        } else {
-            this.currentRegion = 0;
         }
     },
     
@@ -142,18 +141,18 @@ _.extend(GeoTracking.prototype, {
         return -1;
     },
 
+    setRegion: function(id) {
+        this.currentRegion = id;
+        var region = this.locationData.regions[id];
+        this.application.updateTerritory(region.name, id);
+        console.log(region.name);
+    },
+
     getCurrentPosition: function(position) {
         var regionId = this.findRegion(position);
         if ((regionId != -1) && (regionId != this.currentRegion)) {
-            this.currentRegion = regionId;
-            var region = this.locationData.regions[regionId];
-            console.log(region.name);
-            this.application.updateTerritory(region.name, regionId);
+            this.setRegion(regionId);
         }
-        // var debug = "Latitude: " + position.coords.latitude +
-        //             " Longitude: " + position.coords.longitude +
-        //             " Accuracy: " + position.coords.accuracy;
-        // console.log(debug);
     },
 
     fail: function() {
@@ -197,6 +196,7 @@ _.extend(Application.prototype, {
 
         // GeoTracking
         this.geoTracking = new GeoTracking(this, LocationData);
+        this.territory = 0;
 
         // Client side game state management
         this.game = null;
@@ -255,17 +255,18 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
-        var clans = msg[0].clans;
+        var clans = msg[this.territory].clans;
         for (var i=0;i<clans.length;i++) {
             this.clans[i].points = clans[i];
         }
     },
 
     clanAttack: _.debounce(function() {
-        this.socket.emit('click-event', {});
+        this.socket.emit('click-event', {territory: this.territory});
     }, 50, true),
 
     updateTerritory: function(name, id) {
+        this.territory = id;
         this.territoryName.text(name);
     },
 
