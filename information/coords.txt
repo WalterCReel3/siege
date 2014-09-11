@@ -1,0 +1,17 @@
+Upper Eastern Corner:		Long: -78.638962  Lat: 35.775677
+Upper Western Corner:		Long: -78.639777  Lat: 35.775706
+Lower Western Corner:		Long: -78.639871  Lat: 35.774172
+Lower Eastern Corner:		Long: -78.639022  Lat: 35.774116
+Center Shared Corner:		Long: -78.639390  Lat: 35.774767
+
++------+------+
+|      |      |
+| terr | terr |
+| 1    | 2    |
+|      |      |
++------X------+
+|      |      |
+| terr | terr |
+| 3    | 4    |
+|      |      |
++------+------+
