@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="territory2.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.35"
+     inkscape:cx="375"
+     inkscape:cy="520"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:snap-grids="false"
+     inkscape:window-width="900"
+     inkscape:window-height="665"
+     inkscape:window-x="57"
+     inkscape:window-y="24"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:87.82511139px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="148.32321"
+       y="124.87407"
+       id="text2985"
+       sodipodi:linespacing="125%"
+       transform="scale(0.844747,1.1837864)"><tspan
+         sodipodi:role="line"
+         x="148.32321"
+         y="124.87407"
+         id="tspan2989"
+         style="font-size:105.39012909px">Sheratonia</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:85.64447021px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="177.23592"
+       y="242.90363"
+       id="text2993"
+       sodipodi:linespacing="125%"
+       transform="scale(0.91951283,1.0875324)"><tspan
+         sodipodi:role="line"
+         id="tspan2995"
+         x="177.23592"
+         y="242.90363">Territory 3</tspan></text>
+    <rect
+       style="fill:#666666;stroke:none"
+       id="rect2999"
+       width="477.14285"
+       height="448.57144"
+       x="131.42857"
+       y="412.36218" />
+    <rect
+       style="fill:#ffffff;stroke:none"
+       id="rect3003"
+       width="208.57143"
+       height="200"
+       x="151.42857"
+       y="429.21933" />
+    <rect
+       style="fill:#ffffff;stroke:none"
+       id="rect3003-9"
+       width="208.57143"
+       height="200"
+       x="379.42859"
+       y="429.2193" />
+    <rect
+       style="fill:#ffffff;stroke:none"
+       id="rect3003-91"
+       width="208.57143"
+       height="200"
+       x="378.57144"
+       y="642.36218" />
+    <rect
+       style="fill:#b3b3b3;stroke:none"
+       id="rect3003-1"
+       width="208.57143"
+       height="200"
+       x="150.57144"
+       y="642.36218" />
+    <path
+       sodipodi:type="star"
+       style="fill:#ffff00;stroke:none"
+       id="path3039"
+       sodipodi:sides="5"
+       sodipodi:cx="234.28571"
+       sodipodi:cy="506.64789"
+       sodipodi:r1="50.548016"
+       sodipodi:r2="25.27401"
+       sodipodi:arg1="0.74541948"
+       sodipodi:arg2="1.373738"
+       inkscape:flatsided="false"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 271.42856,540.9336 -32.19457,-9.50084 -26.07816,21.13495 -0.91284,-33.55478 -28.15912,-18.27074 31.63041,-11.23716 8.67486,-32.42689 20.4615,26.60983 33.52049,-1.77017 -18.9845,27.68294 z"
+       inkscape:transform-center-x="3.0582069"
+       inkscape:transform-center-y="-1.8249622"
+       transform="translate(-1.7142857,231.71429)" />
+  </g>
+</svg>
