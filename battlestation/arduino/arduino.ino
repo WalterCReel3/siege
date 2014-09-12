@@ -30,6 +30,7 @@ static Adafruit_NeoPixel * score_strips[SCORE_STRIPS];
 #define TARGET_DIGIT_LEDS 15
 static byte target_pin = 3;
 static Adafruit_NeoPixel target_strip(TARGET_STRIP_LEDS, target_pin, NEO_GRB + NEO_KHZ800);
+static byte target_teams_start[3] = {30, 15, 0};
 
 static boolean digit_1[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0};
 static boolean digit_2[TARGET_DIGIT_LEDS] = {1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1};
@@ -233,7 +234,7 @@ boolean exec_target(char * tok) {
   }
   
   // Find the offset for the team's LED matrix
-  byte start_led = team * TARGET_DIGIT_LEDS;
+  byte start_led = target_teams_start[team];
   for (int i = 0; i < TARGET_DIGIT_LEDS; i++) {
     byte * digit;
     switch (territory) {
