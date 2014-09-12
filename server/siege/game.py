@@ -268,7 +268,7 @@ class GameManager(object):
         player_territories = {}
         for p in config['game_template']['players']:
             device_id = p['device_id']
-            player = self.players[device_id]
+            player = self.get_player(device_id)
             player_territories[device_id] = player.current_territory
         msg['playerTerritories'] = player_territories
 
@@ -323,6 +323,7 @@ class GameManager(object):
         self.event_queue = []
         self.territory_updates = None
         self.device_updates = None
+        self.current_game = self.init_game()
 
     def run(self):
         # This is basically the the game run loop
