@@ -8,10 +8,17 @@ from siege.models import Device
 from siege.models import Player
 from siege.service import config
 
+
 DEBUG = True
 MINIMUM_HOLD_TIME = 5.0
 MINIMUM_HOLD_PERCENTAGE = 0.5
 POWER_THRESHOLD = 2000
+GAME_RESET_TIME = 30
+
+
+GM_IN_GAME = 0
+GM_ENDED = 1
+
 
 class Territory(object):
 
@@ -29,6 +36,11 @@ class Territory(object):
         # Current clan who gained control
         self.controlling_clan = -1
 
+        self.reset()
+
+    def reset(self):
+        self.clan_power = []
+        self.controlling_clan = -1
         for i in xrange(3): # TODO: Num clans
             self.clan_power.append(0.0)
 
@@ -111,6 +123,8 @@ class GameManager(object):
 
         # Current game
         self.current_game = None
+        self.game_mode = GM_IN_GAME
+        self.winner = -1
 
         # Initialize territories
         for i in xrange(4): # TODO: Num territories
@@ -145,6 +159,7 @@ class GameManager(object):
         territory = 0
         player = Player.create(self.current_game.id, device.id, clan,
                                territory)
+        return player
 
     def register_click(self, device_id, territory):
         device = self.get_device(device_id)
@@ -211,6 +226,7 @@ class GameManager(object):
         # add the players defined inthe game template
         for p in config['game_template']['players']:
             Player.create(game.id, p['device_id'], p['clan'], p['territory'])
+        self.winner = -1
         return game
 
     def game_state(self):
@@ -230,6 +246,51 @@ class GameManager(object):
                 return False, -1
         return True, self.territories[0].controlling_clan
 
+    def create_in_game_message(self):
+        territory_control = [t.to_dict() for t in self.territories]
+        clan_sizes = [len(self.players_by_clan[c]) for c in xrange(3)]
+        msg = {}
+        msg['gameMode'] = 'in-game'
+        msg['territoryControl'] = territory_control
+        msg['clanSizes'] = clan_sizes
+        for t in self.territories:
+            msg[str(t.id)] = dict(clans=t.clan_power)
+        return msg
+
+    def create_ended_message(self):
+        display_power = [0, 0, 0]
+        display_power[self.winner] = POWER_THRESHOLD
+        msg = {}
+        msg['gameMode'] = 'ended'
+        # Make a solid color for the display
+        for t in self.territories:
+            msg[str(t.id)] = dict(clans=display_power)
+        return msg
+
+    def emit_game_update(self):
+        if self.game_mode == GM_IN_GAME:
+            msg = self.create_in_game_message()
+        elif self.game_mode == GM_ENDED:
+            msg = self.create_ended_message()
+        self.socketio.emit('game-update', msg, namespace='/game')
+
+    def end_game(self, winner):
+        self.winner = winner
+        self.game_mode = GM_ENDED
+        self.reset_at = time.time() + GAME_RESET_TIME
+        game = Game.current()
+        game.end()
+        self.current_game = None
+        self.players = {}
+        for territory in self.territories:
+            territory.reset()
+        self.players_by_clan = {}
+        for i in xrange(3):
+            self.players_by_clan[i] = []
+        self.event_queue = []
+        self.territory_updates = None
+        self.device_updates = None
+
     def run(self):
         # This is basically the the game run loop
         # This will evaluate the current state according
@@ -238,23 +299,21 @@ class GameManager(object):
         while True:
             t1 = time.clock()
 
-            if not self.current_game:
-                self.load_game()
-            if not self.current_game:
-                self.current_game = self.init_game()
+            if self.game_mode == GM_IN_GAME:
+                if not self.current_game:
+                    self.load_game()
+                if not self.current_game:
+                    self.current_game = self.init_game()
+                self.process_events()
+                ended, winner = self.game_state()
+                if ended:
+                    self.end_game(winner)
+            elif self.game_mode == GM_ENDED:
+                now = time.time()
+                if now > self.reset_at:
+                    self.game_mode = GM_IN_GAME
 
-            self.process_events()
-            ended, winner = self.game_state()
-
-            msg = {}
-            msg['territory_control'] = [t.to_dict()
-                                        for t in self.territories]
-            msg['game_mode'] = 'in-game'
-            msg['clan_sizes'] = [len(self.players_by_clan[c])
-                                 for c in xrange(3)]
-            for t in self.territories:
-                msg[t.id] = dict(clans=t.clan_power)
-            self.socketio.emit('game-update', msg, namespace='/game')
+            self.emit_game_update()
 
             t2 = time.clock()
             td = t2 - t1

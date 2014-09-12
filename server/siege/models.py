@@ -75,6 +75,10 @@ class Game(db.Model):
                     endedAt=unixtime(self.ended_at),
                     numPlayers=len(self.players))
 
+    def end(self):
+        self.ended_at = datetime.datetime.utcnow()
+        db.session.commit()
+
     @staticmethod
     def current():
         return (Game.query.filter_by(ended_at=None)

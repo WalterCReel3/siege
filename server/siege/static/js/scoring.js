@@ -275,6 +275,7 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
+        console.log(msg.gameMode);
         var clans = msg[this.territory].clans;
         for (var i=0;i<clans.length;i++) {
             this.clans[i].points = clans[i];
