@@ -1,6 +1,8 @@
 import math
 import time
 import gevent
+import random
+import pprint
 from operator import itemgetter
 
 from siege.models import Game
@@ -62,15 +64,18 @@ class Territory(object):
         now = time.time()
         if not self.control_start:
             self.control_start = now
+            self.count_down = 0
             return
 
         difference = now - self.control_start
         if difference > MINIMUM_HOLD_TIME:
             self.controlling_clan = clan_id
+        self.count_down = difference
 
     def no_controller(self):
         self.pending_clan = -1
         self.control_start = None
+        self.count_down = 0
 
     def evaluate_control(self):
         clans = self.clan_power
@@ -97,7 +102,8 @@ class Territory(object):
 
     def to_dict(self):
         return dict(id=self.id,
-                    controlling_clan=self.controlling_clan)
+                    countDown=self.count_down,
+                    controllingClan=self.controlling_clan)
 
 
 class GameManager(object):
@@ -156,7 +162,7 @@ class GameManager(object):
                       for clan_id in xrange(3)]
         clan_sizes.sort(key=itemgetter(1))
         clan = clan_sizes[0][0]
-        territory = 0
+        territory = random.choice(range(4))
         player = Player.create(self.current_game.id, device.id, clan,
                                territory)
         return player
@@ -286,7 +292,11 @@ class GameManager(object):
         # Make a solid color for the display
         for t in self.territories:
             msg[str(t.id)] = dict(clans=display_power)
-        self.add_default_player_locations(msg)
+        player_territories = {}
+        for p in config['game_template']['players']:
+            device_id = p['device_id']
+            player_territories[device_id] = 0
+        msg['playerTerritories'] = player_territories
         return msg
 
     def emit_game_update(self):
@@ -294,6 +304,7 @@ class GameManager(object):
             msg = self.create_in_game_message()
         elif self.game_mode == GM_ENDED:
             msg = self.create_ended_message()
+        #pprint.pprint(msg)
         self.socketio.emit('game-update', msg, namespace='/game')
 
     def end_game(self, winner):

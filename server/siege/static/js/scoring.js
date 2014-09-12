@@ -87,16 +87,19 @@ var LocationData = {
     ],
     regions: [
         {
-            name: 'Sir Waltersberg',
+            name: '1: Sir Waltersberg',
             indexes: [0, 1, 2, 3]
-        }, {
-            name: 'East Faye',
+        },
+        {
+            name: '2: East Faye',
             indexes: [4, 5, 6, 7]
-        }, {
-            name: 'Sheratonia',
+        },
+        {
+            name: '3: Sheratonia',
             indexes: [8, 9, 10, 11]
-        }, {
-            name: 'Plazastan',
+        },
+        {
+            name: '4: Plazastan',
             indexes: [12, 13, 14, 15]
         }
     ]
@@ -163,9 +166,7 @@ _.extend(GeoTracking.prototype, {
 
     setRegion: function(id) {
         this.currentRegion = id;
-        var region = this.locationData.regions[id];
-        this.application.updateTerritory(region.name, id);
-        console.log(region.name);
+        this.application.updateTerritory(id);
     },
 
     getCurrentPosition: function(position) {
@@ -262,12 +263,13 @@ _.extend(Application.prototype, {
     },
 
     run: function() {
-        this.geoTracking.run();
         var self = this;
         $.ajax({url:'/game/info'}).then(function(resp) {
             self.game = resp.game;
             self.device = resp.device;
             self.player = resp.player;
+            self.updateTerritory(self.player.currentTerritory);
+            self.geoTracking.run();
             self.tasklet.run();
         }).fail(function(error) {
             console.log(error);
@@ -275,7 +277,6 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
-        console.log(msg.gameMode);
         var clans = msg[this.territory].clans;
         for (var i=0;i<clans.length;i++) {
             this.clans[i].points = clans[i];
@@ -286,9 +287,10 @@ _.extend(Application.prototype, {
         this.socket.emit('click-event', {territory: this.territory});
     }, 50, true),
 
-    updateTerritory: function(name, id) {
+    updateTerritory: function(id) {
         this.territory = id;
-        this.territoryName.text(name);
+        var region = LocationData.regions[id];
+        this.territoryName.text(region.name);
     },
 
     calcControl: function() {
@@ -315,7 +317,7 @@ _.extend(Application.prototype, {
 
     tick: function() {
         // Evaluated by the server
-        // stimulate the natural decay before
+        // simulate the natural decay before
         // the next update from the server
         _.each(this.clans, function(clan) {
             clan.tick();
@@ -332,7 +334,7 @@ _.extend(Application.prototype, {
     onCanvasClick: function(evt) {
         // var scenePos = this.translateScenePosition(evt);
         // this.newActor(scenePos);
-        this.clanAttack(0, 100);
+        this.clanAttack();
     }
 });
 
