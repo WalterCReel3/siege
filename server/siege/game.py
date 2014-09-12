@@ -173,6 +173,7 @@ class GameManager(object):
         if territory is None:
             territory = player.current_territory
 
+        player.update_territory(territory)
         power = 100 + device.bonus
         event = ('click', player.device_id, player.id, player.clan,
                  territory, power)
@@ -246,6 +247,14 @@ class GameManager(object):
                 return False, -1
         return True, self.territories[0].controlling_clan
 
+    def add_default_player_locations(self, msg):
+        player_territories = {}
+        for p in config['game_template']['players']:
+            device_id = p['device_id']
+            player = self.players[device_id]
+            player_territories[device_id] = player.current_territory
+        msg['playerTerritories'] = player_territories
+
     def create_in_game_message(self):
         territory_control = [t.to_dict() for t in self.territories]
         clan_sizes = [len(self.players_by_clan[c]) for c in xrange(3)]
@@ -255,6 +264,7 @@ class GameManager(object):
         msg['clanSizes'] = clan_sizes
         for t in self.territories:
             msg[str(t.id)] = dict(clans=t.clan_power)
+        self.add_default_player_locations(msg)
         return msg
 
     def create_ended_message(self):
@@ -265,6 +275,7 @@ class GameManager(object):
         # Make a solid color for the display
         for t in self.territories:
             msg[str(t.id)] = dict(clans=display_power)
+        self.add_default_player_locations(msg)
         return msg
 
     def emit_game_update(self):

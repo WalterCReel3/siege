@@ -118,6 +118,12 @@ class Player(db.Model):
                     currentTerritory=self.current_territory,
                     comment=self.comment)
 
+    def update_territory(self, territory):
+        if territory == self.current_territory:
+            return
+        self.current_territory = territory
+        db.session.commit()
+
     @staticmethod
     def current(device_id):
         game = Game.current()
