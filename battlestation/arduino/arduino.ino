@@ -23,9 +23,18 @@
 
 #define SCORE_STRIPS 4
 #define SCORE_STRIP_LEDS 60
-
-static Adafruit_NeoPixel * score_strips[SCORE_STRIPS];
 static byte score_pins[] = {9, 10, 11, 12};
+static Adafruit_NeoPixel * score_strips[SCORE_STRIPS];
+
+#define TARGET_STRIP_LEDS 45
+#define TARGET_DIGIT_LEDS 15
+static byte target_pin = 3;
+static Adafruit_NeoPixel target_strip(TARGET_STRIP_LEDS, target_pin, NEO_GRB + NEO_KHZ800);
+
+static boolean digit_1[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+static boolean digit_2[TARGET_DIGIT_LEDS] = {1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1};
+static boolean digit_3[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1};
+static boolean digit_4[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1};
 
 #define TEAMS 3
 static uint32_t team_colors[TEAMS];
@@ -41,7 +50,11 @@ void setup() {
     score_strips[i] = new Adafruit_NeoPixel(SCORE_STRIP_LEDS, score_pins[i], NEO_GRB + NEO_KHZ800);    
     score_strips[i]->begin();
   }
-  flash(*score_strips[0], Adafruit_NeoPixel::Color(0, 0, 0), 10, 20);
+  
+  target_strip.begin();
+  
+  //flash(*score_strips[0], Adafruit_NeoPixel::Color(0, 0, 0), 10, 20);
+  //flash(target_strip, Adafruit_NeoPixel::Color(255, 0, 0), 10, 20);
 }
 
 void loop() {
@@ -82,13 +95,16 @@ void exec_cmd(char * cmd) {
     ok = exec_score(tok);
   } else if (strcmp(cmd_name, "f") == 0) {
     ok = exec_flash(tok);
+  } else if (strcmp(cmd_name, "t") == 0) {
+    ok = exec_target(tok);
   } else if (strcmp(cmd_name, "p") == 0) {
     // the "ok" is the result
     ok = true;
   } else if (strcmp(cmd_name, "h") == 0) {
-    Serial.print("f(lash) s count ms\n");
+    Serial.print("f(lash) strip count ms\n");
     Serial.print("h(elp)\n");
-    Serial.print("s(core) s t # t # t #\n");
+    Serial.print("s(core) strip team # team # team #\n");
+    Serial.print("t(arget) team terr\n");
     Serial.print("p(ing)\n");
     ok = true;
   }
@@ -107,6 +123,8 @@ static const char * e_team_nums = "team is 0,1,2\n";
 static const char * e_led_required = "led # required\n";
 static const char * e_count_required = "count required\n";
 static const char * e_ms_required = "ms required\n";
+static const char * e_territory_required = "territory required\n";
+static const char * e_territory_nums = "territory is 0,1,2,3\n";
 
 boolean exec_flash(char * tok) {
   // Read strip number
@@ -186,6 +204,57 @@ boolean exec_score(char * tok) {
     score_strips[strip]->setPixelColor(l, 0, 0, 0);
   }
   score_strips[strip]->show();
+  return true;
+}
+
+boolean exec_target(char * tok) {
+  // Read team number
+  char * arg = strtok_r(NULL, " ", &tok);
+  if (arg == NULL) {  
+    Serial.print(e_team_required);
+    return false;
+  }
+  int team = atoi(arg);
+  if (team > 2) {
+    Serial.print(e_team_nums);
+    return false;
+  }
+
+  // Read territory number
+  arg = strtok_r(NULL, " ", &tok);
+  if (arg == NULL) {  
+    Serial.print(e_territory_required);
+    return false;
+  }
+  int territory = atoi(arg);
+  if (territory > 3) {
+    Serial.print(e_territory_nums);
+    return false;
+  }
+  
+  // Find the offset for the team's LED matrix
+  byte start_led = team * TARGET_DIGIT_LEDS;
+  for (int i = 0; i < TARGET_DIGIT_LEDS; i++) {
+    byte * digit;
+    switch (territory) {
+      case 0:
+        digit = digit_1;
+        break;
+      case 1:
+        digit = digit_2;
+        break;
+      case 2:
+        digit = digit_3;
+        break;
+      case 3:
+        digit = digit_4;
+        break;
+      default:
+        return false;
+    }
+    target_strip.setPixelColor(start_led + i, digit[i] ? team_colors[team] : 0);
+  }
+  target_strip.show();
   return true;
 }
 
