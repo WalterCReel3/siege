@@ -40,7 +40,12 @@ ADVANCE_TARGET_KEYMAP = {
     '3': 2,
 }
 
-targeted_territories = {}
+targeted_territories = {
+    0: 0,
+    1: 0,
+    2: 0,
+    3: 0
+}
 
 # Handles events on the root namespace
 class RootNamespace(BaseNamespace):
