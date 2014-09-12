@@ -8,7 +8,10 @@ from siege.models import Device
 from siege.models import Player
 from siege.service import config
 
-MINIMUM_HOLD = 5000
+DEBUG = True
+MINIMUM_HOLD_TIME = 5.0
+MINIMUM_HOLD_PERCENTAGE = 0.5
+POWER_THRESHOLD = 2000
 
 class Territory(object):
 
@@ -44,13 +47,13 @@ class Territory(object):
 
     def clan_controlling(self, clan_id):
         self.pending_clan = clan_id
-        now = time.clock()
+        now = time.time()
         if not self.control_start:
             self.control_start = now
             return
 
         difference = now - self.control_start
-        if difference > MINIMUM_HOLD:
+        if difference > MINIMUM_HOLD_TIME:
             self.controlling_clan = clan_id
 
     def no_controller(self):
@@ -66,17 +69,17 @@ class Territory(object):
             self.no_controller()
             return
 
-        if base_power < 2000:
-            base_power = 2000
+        if base_power < POWER_THRESHOLD:
+            base_power = POWER_THRESHOLD
 
         clan_control = [clan / base_power for clan in clans]
         controlled = False
         for clan_id, control in enumerate(clan_control):
-            if control > 0.66:
+            if control > MINIMUM_HOLD_PERCENTAGE:
                 controlled = True
                 break
         if controlled:
-            self.clan_controlling(i)
+            self.clan_controlling(clan_id)
         else:
             self.no_controller()
 
@@ -210,6 +213,23 @@ class GameManager(object):
             Player.create(game.id, p['device_id'], p['clan'], p['territory'])
         return game
 
+    def game_state(self):
+        if DEBUG:
+            clan_id = self.territories[0].controlling_clan
+            if clan_id != -1:
+                return True, clan_id
+            else:
+                return False, -1
+
+        for i in xrange(len(self.territories) - 1):
+            c1 = self.territories[i].controlling_clan
+            c2 = self.territories[i+1].controlling_clan
+            if c1 == -1 or c2 == -1:
+                return False, -1
+            if c1 != c2:
+                return False, -1
+        return True, self.territories[0].controlling_clan
+
     def run(self):
         # This is basically the the game run loop
         # This will evaluate the current state according
@@ -224,6 +244,7 @@ class GameManager(object):
                 self.current_game = self.init_game()
 
             self.process_events()
+            ended, winner = self.game_state()
 
             msg = {}
             msg['territory_control'] = [t.to_dict()
