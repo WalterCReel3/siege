@@ -42,3 +42,16 @@ def click_event(message):
     if not device_id:
         device_id = request.cookies.get('device_id')
     game_manager.register_click(device_id, territory)
+
+
+@socketio.on('location-update', namespace='/game')
+def click_event(message):
+    game_manager = get_game_manager()
+    if not game_manager:
+        return # too early.. game loop not initialized
+
+    device_id = message.get('device_id')
+    territory = message.get('territory', None)
+    if not device_id:
+        device_id = request.cookies.get('device_id')
+    game_manager.update_player_location(device_id, territory)

@@ -179,6 +179,17 @@ class GameManager(object):
                  territory, power)
         self.event_queue.append(event)
 
+    def update_player_location(self, device_id, territory):
+        device = self.get_device(device_id)
+        if not device:
+            return
+
+        player = self.get_player(device_id)
+        if not player:
+            return
+
+        player.update_territory(territory)
+
     def process_click(self, event):
         name, did, pid, cid, tid, p = event
         if tid not in self.territory_updates:
