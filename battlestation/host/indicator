@@ -35,6 +35,11 @@ class GameNamespace(BaseNamespace):
     LEDS_PER_TERRITORY = 60
     SCORE_PERIOD = datetime.timedelta(milliseconds=100)
     FLASH_PERIOD = datetime.timedelta(seconds=5)
+    BATTLESTATION_DEVICE_POSITIONS = {
+        'znemxs63dyddy': 0,
+        'kjdobbempami4': 1,
+        'hguxnrsq4vdq4': 2
+    }
 
     def __init__(self, transport, path):
         BaseNamespace.__init__(self, transport, path)
@@ -47,6 +52,8 @@ class GameNamespace(BaseNamespace):
         self._next_flash_at = {}
         # territory => datetime
         self._next_score_at = {}
+        # team => territory
+        self._targets = {}
 
     @property
     def indicator(self):
@@ -76,6 +83,13 @@ class GameNamespace(BaseNamespace):
             # Flash if there was a change since the last time
             if self._flash_now(territory, scaled_points):
                 self._indicator.execute('f %d 2 50' % territory)
+
+        for (device, target) in data['playerTerritories'].iteritems():
+            old_target = self._targets.get(device, None)
+            if old_target != target:
+                position = GameNamespace.BATTLESTATION_DEVICE_POSITIONS[device]
+                self._indicator.execute('t %d %d' % (position, target))
+                old_target = target
 
     def _flash_now(self, territory, scaled_points):
         # Always update the saved points, but capture the old ones

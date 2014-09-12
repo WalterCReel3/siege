@@ -20,7 +20,7 @@ DEVICES = {
 
 # Maps keys to teams.  These are the default chars we get from the Minpac for pin 1-n
 # (ignoring groups)
-KEYMAP = {
+ATTACK_KEYMAP = {
     '\t': 0,
     '\x1b': 0,
     'p': 0,
@@ -34,6 +34,13 @@ KEYMAP = {
     'q': 2,
 }
 
+ADVANCE_TARGET_KEYMAP = {
+    '1': 0,
+    '2': 1,
+    '3': 2,
+}
+
+targeted_territories = {}
 
 # Handles events on the root namespace
 class RootNamespace(BaseNamespace):
@@ -95,30 +102,51 @@ class Buttons(object):
 
     def run(self):
         with self._non_blocking_term(sys.stdin, echo=False):
-            with SocketIO('clicksiege.com', port=80) as socketIO:
-                root = socketIO.define(RootNamespace)
-                root.buttons = self
-                game = socketIO.define(GameNamespace, '/game')
+            while True:
+                with SocketIO('clicksiege.com', port=80) as socketIO:
+                    root = socketIO.define(RootNamespace)
+                    root.buttons = self
+                    game = socketIO.define(GameNamespace, '/game')
 
-                fake_heartbeat_interval = datetime.timedelta(seconds=10)
-                last_fake_heartbeat = datetime.datetime(1, 1, 1)
-                while not self.stop:
-                    char = sys.stdin.read(1)
-                    if char:
-                        team = KEYMAP.get(char, None)
-                        if team is not None:
-                            self._logger.debug('team %d on territory %d', team, 0)
-                            game.emit('click-event', dict(device_id=DEVICES[team], territory=0))
-                        else:
-                            self._logger.error('key "%s" (dec %d) is not mapped to a team', char, ord(char))
+                    fake_heartbeat_interval = datetime.timedelta(seconds=10)
+                    last_fake_heartbeat = datetime.datetime(1, 1, 1)
+                    while not self.stop:
+                        char = sys.stdin.read(1)
+                        if char:
+                            if char in ATTACK_KEYMAP:
+                                team = ATTACK_KEYMAP[char]
+                                territory = targeted_territories.get(team, None)
+                                if territory is None:
+                                    self._logger.warn('no attack; team %d has no target territory', team)
+                                else:
+                                    self._logger.debug('team %d attacks territory %d', team, territory)
+                                    game.emit('click-event', dict(device_id=DEVICES[team], territory=territory))
+                            elif char in ADVANCE_TARGET_KEYMAP:
+                                team = ADVANCE_TARGET_KEYMAP[char]
 
-                    now = datetime.datetime.now()
-                    if now >= last_fake_heartbeat + fake_heartbeat_interval:
-                        game.emit(event='ping')
-                        last_fake_heartbeat = now
+                                # Increment target territory
+                                territory = targeted_territories.get(team, -1)
+                                territory += 1
+                                if territory > 3:
+                                    territory = 0
+                                targeted_territories[team] = territory
 
-                    # Small sleep so we don't burn down the house
-                    time.sleep(0.0001)
+                                self._logger.debug('team %d targets territory %d', team, territory)
+                                # Must send a click with the new territory to switch
+                                game.emit('click-event', dict(device_id=DEVICES[team], territory=territory))
+                            else:
+                                self._logger.error('key "%s" (dec %d) is not mapped to anything', char, ord(char))
+
+                        # Fake some heartbeats
+                        now = datetime.datetime.now()
+                        if now >= last_fake_heartbeat + fake_heartbeat_interval:
+                            game.emit(event='ping')
+                            last_fake_heartbeat = now
+
+                        # Small sleep so we don't burn down the house
+                        time.sleep(0.0001)
+
+                self._logger.warning('socket disconnected, reconnecting')
 
 
 # Does the thing
