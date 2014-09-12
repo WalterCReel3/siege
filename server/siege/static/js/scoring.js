@@ -114,13 +114,13 @@ _.extend(GeoTracking.prototype, {
             this.tasklet = new Tasklet(_.bind(this.fetchLocation, this), 5000);
         }
     },
-    
+
     pointInPolygon: function(point, poly) {
         var points = this.locationData.coordinates;
         // unpack the point coords
         var x = point[0];
         var y = point[1];
-    
+
         var inside = false;
         for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
             // get the line segment coords
@@ -135,7 +135,7 @@ _.extend(GeoTracking.prototype, {
                 inside = !inside;
             }
         }
-    
+
         return inside;
     },
 

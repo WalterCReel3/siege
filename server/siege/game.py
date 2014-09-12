@@ -8,11 +8,24 @@ from siege.models import Device
 from siege.models import Player
 from siege.service import config
 
+MINIMUM_HOLD = 5000
+
 class Territory(object):
 
     def __init__(self, id):
         self.id = id
+
+        # current clan power for the territory
         self.clan_power = []
+
+        # For tracking pending control
+        # if held for a set duration
+        self.pending_clan = -1
+        self.control_start = None
+
+        # Current clan who gained control
+        self.controlling_clan = -1
+
         for i in xrange(3): # TODO: Num clans
             self.clan_power.append(0.0)
 
@@ -21,12 +34,55 @@ class Territory(object):
         clans = self.clan_power
         for i in xrange(3):
             clans[i] += clan_updates.get(i, 0)
+        self.evaluate_control()
 
     def decay(self):
         clans = self.clan_power
         for i in xrange(len(clans)):
             p = clans[i]
             clans[i] = p - math.ceil(p * 0.10)
+
+    def clan_controlling(self, clan_id):
+        self.pending_clan = clan_id
+        now = time.clock()
+        if not self.control_start:
+            self.control_start = now
+            return
+
+        difference = now - self.control_start
+        if difference > MINIMUM_HOLD:
+            self.controlling_clan = clan_id
+
+    def no_controller(self):
+        self.pending_clan = -1
+        self.control_start = None
+
+    def evaluate_control(self):
+        clans = self.clan_power
+        total_power = sum(clans)
+        base_power = total_power
+
+        if base_power == 0:
+            self.no_controller()
+            return
+
+        if base_power < 2000:
+            base_power = 2000
+
+        clan_control = [clan / base_power for clan in clans]
+        controlled = False
+        for clan_id, control in enumerate(clan_control):
+            if control > 0.66:
+                controlled = True
+                break
+        if controlled:
+            self.clan_controlling(i)
+        else:
+            self.no_controller()
+
+    def to_dict(self):
+        return dict(id=self.id,
+                    controlling_clan=self.controlling_clan)
 
 
 class GameManager(object):
@@ -129,6 +185,11 @@ class GameManager(object):
         for i, territory in enumerate(self.territories):
             territory.apply_updates(self.territory_updates.get(i, {}))
 
+    def evaluate_control(self):
+        # for each territory we want to evaluate
+        # the control of the territory
+        pass
+
     def load_game(self):
         # Get current game
         self.current_game = Game.current()
@@ -165,6 +226,8 @@ class GameManager(object):
             self.process_events()
 
             msg = {}
+            msg['territory_control'] = [t.to_dict()
+                                        for t in self.territories]
             msg['game_mode'] = 'in-game'
             msg['clan_sizes'] = [len(self.players_by_clan[c])
                                  for c in xrange(3)]
