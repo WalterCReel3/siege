@@ -37,6 +37,10 @@ static boolean digit_2[TARGET_DIGIT_LEDS] = {1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1,
 static boolean digit_3[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1};
 static boolean digit_4[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1};
 
+static boolean letter_w[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1};
+static boolean letter_i[TARGET_DIGIT_LEDS] = {0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0};
+static boolean letter_n[TARGET_DIGIT_LEDS] = {1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0};
+
 #define TEAMS 3
 static uint32_t team_colors[TEAMS];
 
