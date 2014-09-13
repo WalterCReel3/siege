@@ -1,3 +1,6 @@
+var GM_IN_GAME = 'in-game';
+var GM_ENDED = 'ended';
+
 var LogoUrls = [
 '/static/images/racoons-logo.png',
 '/static/images/squirrels-logo.png',
@@ -29,6 +32,15 @@ _.extend(Scene.prototype, {
 
     addObject: function(obj) {
         this.objects.push(obj);
+    }
+
+    removeObject: function(remove) {
+        var updated = [];
+        var self = this;
+        _.each(this.objects, function(object) {
+            if (remove !== object) {
+            }
+        });
     }
 });
 
@@ -221,6 +233,7 @@ _.extend(Application.prototype, {
 
         // Client side game state management
         this.game = null;
+        this.gameMode = GM_IN_GAME;
         this.device = null;
         this.player = null;
         this.clans = [];
@@ -277,6 +290,7 @@ _.extend(Application.prototype, {
     },
 
     onGameEvent: function(msg) {
+        this.gameMode = msg.gameMode;
         var clans = msg[this.territory].clans;
         for (var i=0;i<clans.length;i++) {
             this.clans[i].points = clans[i];
@@ -312,7 +326,7 @@ _.extend(Application.prototype, {
     },
 
     renderStats: function() {
-        this.totalScore.text(this.totalPoints);
+        // this.totalScore.text(this.totalPoints);
     },
 
     tick: function() {
@@ -326,9 +340,12 @@ _.extend(Application.prototype, {
     },
 
     onEnterFrame: function() {
-        this.tick()
-        this.renderStats();
-        this.scene.render();
+        if (self.gameMode == GM_IN_GAME) {
+            this.tick()
+            // this.renderStats();
+            this.scene.render();
+        } else {
+        }
     },
 
     onCanvasClick: function(evt) {

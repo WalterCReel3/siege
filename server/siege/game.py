@@ -11,7 +11,7 @@ from siege.models import Player
 from siege.service import config
 
 
-DEBUG = False
+DEBUG = True
 MINIMUM_HOLD_TIME = 5.0
 MINIMUM_HOLD_PERCENTAGE = 0.5
 POWER_THRESHOLD = 2000
@@ -162,7 +162,10 @@ class GameManager(object):
                       for clan_id in xrange(3)]
         clan_sizes.sort(key=itemgetter(1))
         clan = clan_sizes[0][0]
-        territory = random.choice(range(4))
+        if DEBUG:
+            territory = 0
+        else:
+            territory = random.choice(range(4))
         player = Player.create(self.current_game.id, device.id, clan,
                                territory)
         return player
@@ -304,7 +307,7 @@ class GameManager(object):
             msg = self.create_in_game_message()
         elif self.game_mode == GM_ENDED:
             msg = self.create_ended_message()
-        #pprint.pprint(msg)
+        pprint.pprint(msg)
         self.socketio.emit('game-update', msg, namespace='/game')
 
     def end_game(self, winner):
@@ -323,7 +326,6 @@ class GameManager(object):
         self.event_queue = []
         self.territory_updates = None
         self.device_updates = None
-        self.current_game = self.init_game()
 
     def run(self):
         # This is basically the the game run loop
