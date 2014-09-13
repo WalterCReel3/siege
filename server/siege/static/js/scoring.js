@@ -33,11 +33,16 @@ _.extend(Scene.prototype, {
     },
 
     addObject: function(obj) {
+        if (!obj) return;
         this.objects.push(obj);
     },
 
     removeObject: function(remove) {
         this.objects = _.without(this.objects, remove);
+    },
+
+    reset: function() {
+        this.objects = [];
     }
 });
 
@@ -98,6 +103,47 @@ _.extend(WinnerLogo.prototype, {
                     (-this.winnerImage.height / 2));
 
         // g.drawImage(this.winnerImage, x, y - 40 + this.bounceY);
+    }
+});
+
+var NewGameCountdown = klass.create();
+_.extend(NewGameCountdown.prototype, {
+    initialize: function(app) {
+        this.application = app;
+        this.countdown = 0;
+    },
+
+    update: function(c) {
+        this.countdown = c;
+    },
+
+    render: function(g) {
+        var scene = this.application.scene;
+        var centerX = (scene.width / 2);
+        var centerY = (scene.height / 2);
+        g.font = '20pt sans-serif';
+        g.textAlign = 'center';
+        g.fillStyle = 'black';
+        g.fillText('New game in', centerX, centerY - 10);
+        g.font = '30pt sans-serif';
+        g.fillText('' + this.countdown, centerX, centerY + 30);
+    }
+});
+
+var TerritoriesDisplay = klass.create();
+_.extend(TerritoriesDisplay.prototype, {
+    initialize: function(app) {
+        this.application = app;
+        this.margin = 8;
+        this.padding = 3;
+        this.rectWidth = 10;
+        this.rectHeight = 18;
+    },
+
+    update: function(territoryControl) {
+    },
+
+    render: function(g) {
     }
 });
 
@@ -269,8 +315,7 @@ _.extend(Application.prototype, {
         var chartPos = [this.scene.width/2, this.scene.height/2];
         this.chart = new PiChart(this, chartPos, 100, 3);
         this.teamLogo = new TeamLogo(this);
-        this.scene.addObject(this.chart);
-        this.scene.addObject(this.teamLogo);
+        this.newGameCountdown = new NewGameCountdown(this);
         this.winnerLogo = null;
         this.clanLogos = [];
         this.clanLogosLarge = [];
@@ -303,6 +348,8 @@ _.extend(Application.prototype, {
 
         this.loadAssets();
         this.totalPoints = 0;
+
+        this.setPendingScene();
     },
 
     socketConnectionString: function () {
@@ -358,19 +405,41 @@ _.extend(Application.prototype, {
         });
     },
 
+    setPendingScene: function() {
+        this.scene.reset();
+        this.scene.addObject(this.teamLogo);
+        this.scene.addObject(this.newGameCountdown);
+    },
+
+    setInGameScene: function() {
+        this.scene.reset();
+        this.scene.addObject(this.teamLogo);
+        this.scene.addObject(this.chart);
+    },
+
+    setEndScene: function() {
+        this.scene.reset();
+        this.scene.addObject(this.teamLogo);
+        this.scene.addObject(this.winnerLogo);
+    },
+
     onGameEnded: function(winner) {
         this.scene.removeObject(this.chart);
-        this.winnerLogo = new WinnerLogo(this, winner);
-        this.scene.addObject(this.winnerLogo);
-        this.addEntity(this.winnerLogo);
         this.socket.removeAllListeners('game-update');
         this.tapButton.text('New game');
         this.gameMode = GM_ENDED;
         this.tapButton.toggle();
-        this.winScreenUnlocked = (new Date()).getTime() + 10000;
+        this.winScreenLockTimeout = (new Date()).getTime() + 5000;
+        this.winScreenLocked = true;
+
+        this.winnerLogo = new WinnerLogo(this, winner);
+        this.setEndScene();
+        this.addEntity(this.winnerLogo);
     },
 
     onGameStarted: function() {
+        this.gameMode = GM_IN_GAME;
+        this.setInGameScene();
     },
 
     onGameEvent: function(msg) {
@@ -382,7 +451,7 @@ _.extend(Application.prototype, {
                 && (msg.gameMode === GM_IN_GAME)) {
             console.log('Starting game from waiting');
             this.onGameStarted();
-            this.pending = true;
+            this.pending = false;
         }
 
         if (this.gameMode === GM_IN_GAME) {
@@ -391,6 +460,10 @@ _.extend(Application.prototype, {
                 this.clans[i].points = clans[i];
             }
         } else if (this.gameMode == GM_ENDED && this.pending) {
+            // get countdown info
+            this.nextGameIn = Math.floor(msg.nextGameIn);
+            this.newGameCountdown.update(this.nextGameIn);
+            console.log(this.nextGameIn);
         }
     },
 
@@ -438,8 +511,9 @@ _.extend(Application.prototype, {
             this.chart.updateWedges(this.calcControl());
         } else {
             var now = (new Date()).getTime();
-            if (now > this.winScreenUnlocked) {
+            if (this.winScreenLocked && now > this.winScreenLockTimeout) {
                 this.tapButton.toggle();
+                this.winScreenLocked = false;
             }
         }
         _.each(this.entities, function(entity) {
@@ -457,7 +531,7 @@ _.extend(Application.prototype, {
         // this.newActor(scenePos);
         if (this.gameMode == GM_IN_GAME) {
             this.clanAttack();
-        } else {
+        } else if (!this.pending && !this.winScreenLocked) {
             var root = '//' + document.domain
                      + ':'  + location.port + '/';
             window.location = root;

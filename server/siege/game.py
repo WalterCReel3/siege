@@ -132,6 +132,9 @@ class GameManager(object):
         self.game_mode = GM_IN_GAME
         self.winner = -1
 
+        # Client notifications
+        self.next_game_in = 0
+
         # Initialize territories
         for i in xrange(4): # TODO: Num territories
             self.territories.append(Territory(i))
@@ -296,6 +299,7 @@ class GameManager(object):
         msg = {}
         msg['gameMode'] = 'ended'
         msg['winner'] = self.winner
+        msg['nextGameIn'] = self.next_game_in
         # Make a solid color for the display
         for t in self.territories:
             msg[str(t.id)] = dict(clans=display_power)
