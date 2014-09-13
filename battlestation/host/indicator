@@ -35,7 +35,7 @@ class GameNamespace(BaseNamespace):
     LEDS_PER_TERRITORY = 60
     SCORE_PERIOD = datetime.timedelta(milliseconds=100)
     FLASH_PERIOD = datetime.timedelta(seconds=5)
-    WIN_PERIOD = datetime.timedelta(seconds=1)
+    WIN_PERIOD = datetime.timedelta(seconds=3)
     BATTLESTATION_DEVICE_POSITIONS = {
         'znemxs63dyddy': 0,
         'kjdobbempami4': 1,
