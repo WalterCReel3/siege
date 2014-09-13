@@ -160,11 +160,15 @@ class GameManager(object):
             player = self.players[device_id]
         return player
 
-    def create_player(self, device):
-        clan_sizes = [(clan_id, len(self.players_by_clan.get(clan_id, [])))
-                      for clan_id in xrange(3)]
-        clan_sizes.sort(key=itemgetter(1))
-        clan = clan_sizes[0][0]
+    def create_player(self, device, clan_id=-1):
+        if clan_id not in [0, 1, 2]:
+            clan_sizes = [(clan_id, len(self.players_by_clan.get(clan_id, [])))
+                          for clan_id in xrange(3)]
+            clan_sizes.sort(key=itemgetter(1))
+            clan = clan_sizes[0][0]
+        else:
+            clan = clan_id
+
         if DEBUG:
             territory = 0
         else:
@@ -315,7 +319,7 @@ class GameManager(object):
             msg = self.create_in_game_message()
         elif self.game_mode == GM_ENDED:
             msg = self.create_ended_message()
-        pprint.pprint(msg)
+        # pprint.pprint(msg)
         self.socketio.emit('game-update', msg, namespace='/game')
 
     def end_game(self, winner):
