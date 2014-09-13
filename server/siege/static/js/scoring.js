@@ -1,10 +1,15 @@
-var LogoUrls = [
-'/static/images/racoons-logo.png',
-'/static/images/squirrels-logo.png',
-'/static/images/chimps-logo.png',
-];
+var GM_IN_GAME = 'in-game';
+var GM_ENDED = 'ended';
 
-var Logos = [];
+var ImageAssets = [
+    ['racoons-logo', '/static/images/racoons-logo.png'],
+    ['squirrels-logo', '/static/images/squirrels-logo.png'],
+    ['chimps-logo', '/static/images/chimps-logo.png'],
+    ['racoons-logo-large', '/static/images/racoons-logo-large.png'],
+    ['squirrels-logo-large', '/static/images/squirrels-logo-large.png'],
+    ['chimps-logo-large', '/static/images/chimps-logo-large.png'],
+    ['winner-logo-large', '/static/images/winner-logo.png'],
+];
 
 var Scene = klass.create();
 _.extend(Scene.prototype, {
@@ -28,7 +33,16 @@ _.extend(Scene.prototype, {
     },
 
     addObject: function(obj) {
+        if (!obj) return;
         this.objects.push(obj);
+    },
+
+    removeObject: function(remove) {
+        this.objects = _.without(this.objects, remove);
+    },
+
+    reset: function() {
+        this.objects = [];
     }
 });
 
@@ -39,11 +53,97 @@ _.extend(TeamLogo.prototype, {
     },
 
     render: function(g) {
-        var image = Logos[0];
         var clan = this.application.player.clan;
+        var image = this.application.clanLogos[clan];
         var x = this.application.scene.width - image.width;
         var y = 5;
-        g.drawImage(Logos[clan], x, 5);
+        g.drawImage(image, x, 5);
+    }
+});
+
+var WinnerLogo = klass.create();
+_.extend(WinnerLogo.prototype, {
+    initialize: function(app, clanId) {
+        this.application = app;
+        this.clanId = clanId;
+        this.clanImage = this.application.clanLogosLarge[clanId];
+        console.log(this.clanImage);
+        this.winnerImage = this.application.assets.images['winner-logo-large'];
+        console.log(this.winnerImage);
+
+        this.bounceY = 0;
+        this.bounceYRad = 0;
+        this.bounceX = 0;
+        this.bounceXRad = 0;
+    },
+
+    tick: function() {
+        this.bounceYRad += 0.17;
+        this.bounceY = Math.cos(this.bounceYRad) * 6;
+        this.bounceXRad += 0.09;
+        this.bounceX = Math.cos(this.bounceXRad) * 3;
+    },
+
+    render: function(g) {
+        var scene = this.application.scene;
+        var centerX = (scene.width / 2);
+        var centerY = (scene.height / 2);
+        var clanX = centerX - (this.clanImage.width / 2);
+        var clanY = centerY - (this.clanImage.height / 2);
+        var winCenterX = this.winnerImage.width / 2;
+        var winCenterY = this.winnerImage.height / 2;
+        g.drawImage(this.clanImage, clanX, clanY);
+        g.translate(centerX + this.bounceX,
+                    centerY - (clanY / 2) + this.bounceY);
+        // g.translate(this.winnerImage.width / 2,
+        //             this.winnerImage.height / 2);
+        // g.rotate(this.bounceY / 30);
+        g.drawImage(this.winnerImage,
+                    -this.winnerImage.width / 2,
+                    (-this.winnerImage.height / 2));
+
+        // g.drawImage(this.winnerImage, x, y - 40 + this.bounceY);
+    }
+});
+
+var NewGameCountdown = klass.create();
+_.extend(NewGameCountdown.prototype, {
+    initialize: function(app) {
+        this.application = app;
+        this.countdown = 0;
+    },
+
+    update: function(c) {
+        this.countdown = c;
+    },
+
+    render: function(g) {
+        var scene = this.application.scene;
+        var centerX = (scene.width / 2);
+        var centerY = (scene.height / 2);
+        g.font = '20pt sans-serif';
+        g.textAlign = 'center';
+        g.fillStyle = 'black';
+        g.fillText('New game in', centerX, centerY - 10);
+        g.font = '30pt sans-serif';
+        g.fillText('' + this.countdown, centerX, centerY + 30);
+    }
+});
+
+var TerritoriesDisplay = klass.create();
+_.extend(TerritoriesDisplay.prototype, {
+    initialize: function(app) {
+        this.application = app;
+        this.margin = 8;
+        this.padding = 3;
+        this.rectWidth = 10;
+        this.rectHeight = 18;
+    },
+
+    update: function(territoryControl) {
+    },
+
+    render: function(g) {
     }
 });
 
@@ -205,6 +305,9 @@ _.extend(Application.prototype, {
         this.scene = new Scene(this, this.canvas.get(0));
         this.tasklet = new Tasklet(_.bind(this.onEnterFrame, this), 20);
 
+        // Assets
+        this.assets = {}
+
         // UI event management
         this.bindEvents();
 
@@ -212,8 +315,14 @@ _.extend(Application.prototype, {
         var chartPos = [this.scene.width/2, this.scene.height/2];
         this.chart = new PiChart(this, chartPos, 100, 3);
         this.teamLogo = new TeamLogo(this);
-        this.scene.addObject(this.chart);
-        this.scene.addObject(this.teamLogo);
+        this.newGameCountdown = new NewGameCountdown(this);
+        this.winnerLogo = null;
+        this.clanLogos = [];
+        this.clanLogosLarge = [];
+
+        // Entity Management
+        this.entities = [];
+        this.addEntity(this.chart);
 
         // GeoTracking
         this.geoTracking = new GeoTracking(this, LocationData);
@@ -221,16 +330,26 @@ _.extend(Application.prototype, {
 
         // Client side game state management
         this.game = null;
+        // Assume that we're waiting for a game
+        // unless told so otherwise by the server
+        this.gameMode = GM_ENDED;
         this.device = null;
         this.player = null;
         this.clans = [];
         this.nclans = 3;
         for (var i=0; i<3; i++) {
-            this.clans.push(new Clan(i));
+            var clanEntity = new Clan(i);
+            this.clans.push(clanEntity);
+            this.addEntity(clanEntity);
         }
+        this.winScreenLocked = true;
+        this.winScreenCountDown = 0;
+        this.pending = true;
 
         this.loadAssets();
         this.totalPoints = 0;
+
+        this.setPendingScene();
     },
 
     socketConnectionString: function () {
@@ -251,11 +370,21 @@ _.extend(Application.prototype, {
 
     loadAssets: function() {
         // Load Images
-        for (var i=0; i<3; i++) {
+        this.assets.images = {};
+        var self = this;
+        _.each(ImageAssets, function(imageAsset) {
+            var key = imageAsset[0];
+            var src = imageAsset[1];
             var image = new Image();
-            image.src = LogoUrls[i];
-            Logos.push(image);
-        }
+            image.src = src;
+            self.assets.images[key] = image;
+        });
+        this.clanLogos.push(this.assets.images['racoons-logo']);
+        this.clanLogos.push(this.assets.images['squirrels-logo']);
+        this.clanLogos.push(this.assets.images['chimps-logo']);
+        this.clanLogosLarge.push(this.assets.images['racoons-logo-large']);
+        this.clanLogosLarge.push(this.assets.images['squirrels-logo-large']);
+        this.clanLogosLarge.push(this.assets.images['chimps-logo-large']);
     },
 
     onDestroy: function() {
@@ -276,11 +405,74 @@ _.extend(Application.prototype, {
         });
     },
 
+    setPendingScene: function() {
+        this.scene.reset();
+        this.scene.addObject(this.teamLogo);
+        this.scene.addObject(this.newGameCountdown);
+    },
+
+    setInGameScene: function() {
+        this.scene.reset();
+        this.scene.addObject(this.teamLogo);
+        this.scene.addObject(this.chart);
+    },
+
+    setEndScene: function() {
+        this.scene.reset();
+        this.scene.addObject(this.teamLogo);
+        this.scene.addObject(this.winnerLogo);
+    },
+
+    onGameEnded: function(winner) {
+        this.scene.removeObject(this.chart);
+        this.socket.removeAllListeners('game-update');
+        this.tapButton.text('New game');
+        this.gameMode = GM_ENDED;
+        this.tapButton.toggle();
+        this.winScreenLockTimeout = (new Date()).getTime() + 5000;
+        this.winScreenLocked = true;
+
+        this.winnerLogo = new WinnerLogo(this, winner);
+        this.setEndScene();
+        this.addEntity(this.winnerLogo);
+    },
+
+    onGameStarted: function() {
+        this.gameMode = GM_IN_GAME;
+        this.setInGameScene();
+    },
+
     onGameEvent: function(msg) {
-        var clans = msg[this.territory].clans;
-        for (var i=0;i<clans.length;i++) {
-            this.clans[i].points = clans[i];
+        if ((this.gameMode !== msg.gameMode)
+                && (msg.gameMode === GM_ENDED)) {
+            console.log('Ending game');
+            this.onGameEnded(msg.winner);
+        } else if ((this.gameMode !== msg.gameMode)
+                && (msg.gameMode === GM_IN_GAME)) {
+            console.log('Starting game from waiting');
+            this.onGameStarted();
+            this.pending = false;
         }
+
+        if (this.gameMode === GM_IN_GAME) {
+            var clans = msg[this.territory].clans;
+            for (var i=0;i<clans.length;i++) {
+                this.clans[i].points = clans[i];
+            }
+        } else if (this.gameMode == GM_ENDED && this.pending) {
+            // get countdown info
+            this.nextGameIn = Math.floor(msg.nextGameIn);
+            this.newGameCountdown.update(this.nextGameIn);
+            console.log(this.nextGameIn);
+        }
+    },
+
+    addEntity: function(entity) {
+        this.entities.push(entity);
+    },
+
+    removeEntity: function(remove) {
+        this.entities = _.without(this.entities, remove);
     },
 
     clanAttack: _.debounce(function() {
@@ -311,30 +503,39 @@ _.extend(Application.prototype, {
         return ret;
     },
 
-    renderStats: function() {
-        this.totalScore.text(this.totalPoints);
-    },
-
     tick: function() {
         // Evaluated by the server
         // simulate the natural decay before
         // the next update from the server
-        _.each(this.clans, function(clan) {
-            clan.tick();
+        if (this.gameMode == GM_IN_GAME) {
+            this.chart.updateWedges(this.calcControl());
+        } else {
+            var now = (new Date()).getTime();
+            if (this.winScreenLocked && now > this.winScreenLockTimeout) {
+                this.tapButton.toggle();
+                this.winScreenLocked = false;
+            }
+        }
+        _.each(this.entities, function(entity) {
+            entity.tick();
         });
-        this.chart.updateWedges(this.calcControl());
     },
 
     onEnterFrame: function() {
         this.tick()
-        this.renderStats();
         this.scene.render();
     },
 
     onCanvasClick: function(evt) {
         // var scenePos = this.translateScenePosition(evt);
         // this.newActor(scenePos);
-        this.clanAttack();
+        if (this.gameMode == GM_IN_GAME) {
+            this.clanAttack();
+        } else if (!this.pending && !this.winScreenLocked) {
+            var root = '//' + document.domain
+                     + ':'  + location.port + '/';
+            window.location = root;
+        }
     }
 });
 

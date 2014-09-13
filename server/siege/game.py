@@ -11,7 +11,7 @@ from siege.models import Player
 from siege.service import config
 
 
-DEBUG = False
+DEBUG = True
 MINIMUM_HOLD_TIME = 5.0
 MINIMUM_HOLD_PERCENTAGE = 0.5
 POWER_THRESHOLD = 2000
@@ -132,6 +132,9 @@ class GameManager(object):
         self.game_mode = GM_IN_GAME
         self.winner = -1
 
+        # Client notifications
+        self.next_game_in = 0
+
         # Initialize territories
         for i in xrange(4): # TODO: Num territories
             self.territories.append(Territory(i))
@@ -162,7 +165,10 @@ class GameManager(object):
                       for clan_id in xrange(3)]
         clan_sizes.sort(key=itemgetter(1))
         clan = clan_sizes[0][0]
-        territory = random.choice(range(4))
+        if DEBUG:
+            territory = 0
+        else:
+            territory = random.choice(range(4))
         player = Player.create(self.current_game.id, device.id, clan,
                                territory)
         return player
@@ -244,7 +250,6 @@ class GameManager(object):
         # add the players defined inthe game template
         for p in config['game_template']['players']:
             Player.create(game.id, p['device_id'], p['clan'], p['territory'])
-        self.winner = -1
         return game
 
     def game_state(self):
@@ -269,7 +274,11 @@ class GameManager(object):
         for p in config['game_template']['players']:
             device_id = p['device_id']
             player = self.get_player(device_id)
-            player_territories[device_id] = player.current_territory
+            if player:
+                territory = player.current_territory
+            else:
+                territory = 0
+            player_territories[device_id] = territory
         msg['playerTerritories'] = player_territories
 
     def create_in_game_message(self):
@@ -289,6 +298,8 @@ class GameManager(object):
         display_power[self.winner] = POWER_THRESHOLD
         msg = {}
         msg['gameMode'] = 'ended'
+        msg['winner'] = self.winner
+        msg['nextGameIn'] = self.next_game_in
         # Make a solid color for the display
         for t in self.territories:
             msg[str(t.id)] = dict(clans=display_power)
@@ -304,25 +315,40 @@ class GameManager(object):
             msg = self.create_in_game_message()
         elif self.game_mode == GM_ENDED:
             msg = self.create_ended_message()
-        #pprint.pprint(msg)
+        pprint.pprint(msg)
         self.socketio.emit('game-update', msg, namespace='/game')
 
     def end_game(self, winner):
+        # Set the winner for the ended messages
         self.winner = winner
+
+        # Set the mode
         self.game_mode = GM_ENDED
+
+        # Mark the reset time and wait countdown
+        now = time.time()
         self.reset_at = time.time() + GAME_RESET_TIME
+        self.next_game_in = self.reset_at - now
+
+        # End the game in the database and clear
         game = Game.current()
         game.end()
         self.current_game = None
+
+        # Reset cache and territory objects
         self.players = {}
         for territory in self.territories:
             territory.reset()
         self.players_by_clan = {}
         for i in xrange(3):
             self.players_by_clan[i] = []
+
+        # Clean up event queue and event attributes
         self.event_queue = []
         self.territory_updates = None
         self.device_updates = None
+
+        # Create a new game for new players
         self.current_game = self.init_game()
 
     def run(self):
@@ -346,6 +372,8 @@ class GameManager(object):
                 now = time.time()
                 if now > self.reset_at:
                     self.game_mode = GM_IN_GAME
+                else:
+                    self.next_game_in = self.reset_at - now
 
             self.emit_game_update()
 
