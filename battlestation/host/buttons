@@ -156,7 +156,7 @@ class Buttons(object):
 
 # Does the thing
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, filename='/tmp/buttons.log')
     logger = logging.getLogger()
 
     buttons = Buttons()
