@@ -1,6 +1,9 @@
 var GM_IN_GAME = 'in-game';
 var GM_ENDED = 'ended';
 
+var POWER_THRESHOLD = 100;
+var MINIMUM_HOLD_TIME = 0.1;
+
 var ImageAssets = [
     ['racoons-logo', '/static/images/racoons-logo.png'],
     ['squirrels-logo', '/static/images/squirrels-logo.png'],
@@ -82,12 +85,12 @@ _.extend(ControlCountdown.prototype, {
         }
 
         var countDown = this.territoryControl.countDown;
-        if (countDown > 5) {
+        if (countDown > MINIMUM_HOLD_TIME) {
             return;
         }
 
         var scene = this.application.scene;
-        var totalCountdown = 5;
+        var totalCountdown = MINIMUM_HOLD_TIME;
         var percentage = countDown / totalCountdown;
         var maxWidth = 200;
         var width = percentage * maxWidth;
@@ -592,8 +595,8 @@ _.extend(Application.prototype, {
             return clan.points + acc;
         }, 0);
         var eval = this.totalPoints;
-        if (this.totalPoints < 2000) {
-            eval = 2000;
+        if (this.totalPoints < POWER_THRESHOLD) {
+            eval = POWER_THRESHOLD;
         }
         var self = this;
         var ret = _.map(this.clans, function (clan) {
