@@ -35,6 +35,7 @@ class GameNamespace(BaseNamespace):
     LEDS_PER_TERRITORY = 60
     SCORE_PERIOD = datetime.timedelta(milliseconds=100)
     FLASH_PERIOD = datetime.timedelta(seconds=5)
+    WIN_PERIOD = datetime.timedelta(seconds=1)
     BATTLESTATION_DEVICE_POSITIONS = {
         'znemxs63dyddy': 0,
         'kjdobbempami4': 1,
@@ -54,6 +55,8 @@ class GameNamespace(BaseNamespace):
         self._next_score_at = {}
         # team => territory
         self._targets = {}
+        # datetime
+        self._next_win_at = datetime.datetime(1, 1, 1)
 
     @property
     def indicator(self):
@@ -84,12 +87,26 @@ class GameNamespace(BaseNamespace):
             if self._flash_now(territory, scaled_points):
                 self._indicator.execute('f %d 2 50' % territory)
 
-        for (device, target) in data['playerTerritories'].iteritems():
-            old_target = self._targets.get(device, None)
-            if old_target != target:
-                position = GameNamespace.BATTLESTATION_DEVICE_POSITIONS[device]
-                self._indicator.execute('t %d %d' % (position, target))
-                old_target = target
+        game_mode = data.get('gameMode', None)
+        if game_mode == 'in-game':
+            # Keep the target tower up-to-date
+            for (device, target) in data['playerTerritories'].iteritems():
+                old_target = self._targets.get(device, None)
+                if old_target != target:
+                    position = GameNamespace.BATTLESTATION_DEVICE_POSITIONS[device]
+                    self._indicator.execute('t %d %d' % (position, target))
+                    old_target = target
+        elif game_mode == 'ended':
+            # The team with non-zero points is the winner in this mode
+            raw_points = data[str(territory)]['clans']
+            winning_team = None
+            for team in range(len(raw_points)):
+                if raw_points[team] > 0:
+                    winning_team = team
+                    break
+            if winning_team is not None:
+                if self._win_now():
+                    self._indicator.execute('w %d' % team)
 
     def _flash_now(self, territory, scaled_points):
         # Always update the saved points, but capture the old ones
@@ -120,6 +137,16 @@ class GameNamespace(BaseNamespace):
 
         if val:
             self._next_score_at[territory] = now + GameNamespace.SCORE_PERIOD
+        return val
+
+    def _win_now(self):
+        now = datetime.datetime.now()
+        if now >= self._next_win_at:
+            val = True
+            self._next_win_at = now + GameNamespace.WIN_PERIOD
+        else:
+            val = False
+
         return val
 
     # Normalizes the sequence of scores against the specified maximum value
