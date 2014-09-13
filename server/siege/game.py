@@ -247,7 +247,6 @@ class GameManager(object):
         # add the players defined inthe game template
         for p in config['game_template']['players']:
             Player.create(game.id, p['device_id'], p['clan'], p['territory'])
-        self.winner = -1
         return game
 
     def game_state(self):
@@ -272,7 +271,11 @@ class GameManager(object):
         for p in config['game_template']['players']:
             device_id = p['device_id']
             player = self.get_player(device_id)
-            player_territories[device_id] = player.current_territory
+            if player:
+                territory = player.current_territory
+            else:
+                territory = 0
+            player_territories[device_id] = territory
         msg['playerTerritories'] = player_territories
 
     def create_in_game_message(self):
@@ -292,6 +295,7 @@ class GameManager(object):
         display_power[self.winner] = POWER_THRESHOLD
         msg = {}
         msg['gameMode'] = 'ended'
+        msg['winner'] = self.winner
         # Make a solid color for the display
         for t in self.territories:
             msg[str(t.id)] = dict(clans=display_power)
@@ -311,21 +315,37 @@ class GameManager(object):
         self.socketio.emit('game-update', msg, namespace='/game')
 
     def end_game(self, winner):
+        # Set the winner for the ended messages
         self.winner = winner
+
+        # Set the mode
         self.game_mode = GM_ENDED
+
+        # Mark the reset time and wait countdown
+        now = time.time()
         self.reset_at = time.time() + GAME_RESET_TIME
+        self.next_game_in = self.reset_at - now
+
+        # End the game in the database and clear
         game = Game.current()
         game.end()
         self.current_game = None
+
+        # Reset cache and territory objects
         self.players = {}
         for territory in self.territories:
             territory.reset()
         self.players_by_clan = {}
         for i in xrange(3):
             self.players_by_clan[i] = []
+
+        # Clean up event queue and event attributes
         self.event_queue = []
         self.territory_updates = None
         self.device_updates = None
+
+        # Create a new game for new players
+        self.current_game = self.init_game()
 
     def run(self):
         # This is basically the the game run loop
@@ -348,6 +368,8 @@ class GameManager(object):
                 now = time.time()
                 if now > self.reset_at:
                     self.game_mode = GM_IN_GAME
+                else:
+                    self.next_game_in = self.reset_at - now
 
             self.emit_game_update()
 
