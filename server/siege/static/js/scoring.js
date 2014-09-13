@@ -11,6 +11,10 @@ var ImageAssets = [
     ['winner-logo-large', '/static/images/winner-logo.png'],
 ];
 
+var ControlColors = [[255, 78, 78],
+                     [78, 255, 78],
+                     [78, 78, 255]];
+
 var Scene = klass.create();
 _.extend(Scene.prototype, {
     initialize: function(app, canvas) {
@@ -58,6 +62,47 @@ _.extend(TeamLogo.prototype, {
         var x = this.application.scene.width - image.width;
         var y = 5;
         g.drawImage(image, x, 5);
+    }
+});
+
+var ControlCountdown = klass.create();
+_.extend(ControlCountdown.prototype, {
+    initialize: function(app, clanId) {
+        this.application = app;
+        this.territoryControl = null;
+    },
+
+    update: function(territoryControl) {
+        this.territoryControl = territoryControl;
+    },
+
+    render: function(g) {
+        if (!this.territoryControl || this.territoryControl.countDown == 0) {
+            return;
+        }
+
+        var countDown = this.territoryControl.countDown;
+        if (countDown > 5) {
+            return;
+        }
+
+        var scene = this.application.scene;
+        var totalCountdown = 5;
+        var percentage = countDown / totalCountdown;
+        var maxWidth = 200;
+        var width = percentage * maxWidth;
+        var height = 5;
+        var centerX = (scene.width / 2);
+        var centerY = (scene.height / 2);
+        var x = centerX - maxWidth / 2;
+        var y = 75;
+        var clanId = this.territoryControl.pendingClan;
+        var color = rgbaString(ControlColors[clanId]);
+        console.log('' + clanId + ": " + color );
+        g.beginPath();
+        g.fillStyle = color;
+        g.rect(x, y, width, height);
+        g.fill();
     }
 });
 
@@ -368,6 +413,7 @@ _.extend(Application.prototype, {
         this.teamLogo = new TeamLogo(this);
         this.newGameCountdown = new NewGameCountdown(this);
         this.territoriesDisplay = new TerritoriesDisplay(this);
+        this.controlCountdown = new ControlCountdown(this);
         this.winnerLogo = null;
         this.clanLogos = [];
         this.clanLogosLarge = [];
@@ -465,6 +511,7 @@ _.extend(Application.prototype, {
 
     setInGameScene: function() {
         this.scene.reset();
+        this.scene.addObject(this.controlCountdown);
         this.scene.addObject(this.teamLogo);
         this.scene.addObject(this.chart);
         this.scene.addObject(this.territoriesDisplay);
@@ -513,6 +560,8 @@ _.extend(Application.prototype, {
                 this.clans[i].points = clans[i];
             }
             this.territoriesDisplay.update(msg.territoryControl);
+            var control = msg.territoryControl[this.territory];
+            this.controlCountdown.update(control);
         } else if (this.gameMode == GM_ENDED && this.pending) {
             // get countdown info
             this.nextGameIn = Math.floor(msg.nextGameIn);

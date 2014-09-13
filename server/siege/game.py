@@ -60,6 +60,10 @@ class Territory(object):
             clans[i] = p - math.ceil(p * 0.10)
 
     def clan_controlling(self, clan_id):
+        # Reset if a new clan
+        if self.pending_clan != clan_id:
+            self.control_start = None
+
         self.pending_clan = clan_id
         now = time.time()
         if not self.control_start:
@@ -103,6 +107,7 @@ class Territory(object):
     def to_dict(self):
         return dict(id=self.id,
                     countDown=self.count_down,
+                    pendingClan=self.pending_clan,
                     controllingClan=self.controlling_clan)
 
 
