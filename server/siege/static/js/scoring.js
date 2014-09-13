@@ -149,7 +149,6 @@ _.extend(TerritoriesDisplay.prototype, {
     renderTerritory: function(g, x1, y1, width, height, territory) {
         g.beginPath();
         g.rect(x1, y1, width, height);
-        g.lineWidth = 2;
         if (territory.controllingClan != -1) {
             var clanId = territory.controllingClan;
             var color = rgbaString(this.controlColors[clanId]);
@@ -157,8 +156,14 @@ _.extend(TerritoriesDisplay.prototype, {
         } else {
             g.fillStyle = 'white';
         }
-        g.strokeStyle = 'black';
         g.fill();
+        if (territory.id === this.application.territory) {
+            g.lineWidth = 2;
+            g.strokeStyle = 'black';
+        } else {
+            g.lineWidth = 1;
+            g.strokeStyle = 'gray';
+        }
         g.stroke();
     },
 
