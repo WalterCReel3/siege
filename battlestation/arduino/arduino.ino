@@ -37,7 +37,7 @@ static boolean digit_2[TARGET_DIGIT_LEDS] = {1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1,
 static boolean digit_3[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1};
 static boolean digit_4[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1};
 
-static boolean letter_w[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1};
+static boolean letter_w[TARGET_DIGIT_LEDS] = {1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0};
 static boolean letter_i[TARGET_DIGIT_LEDS] = {0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0};
 static boolean letter_n[TARGET_DIGIT_LEDS] = {1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0};
 
@@ -102,6 +102,8 @@ void exec_cmd(char * cmd) {
     ok = exec_flash(tok);
   } else if (strcmp(cmd_name, "t") == 0) {
     ok = exec_target(tok);
+  } else if (strcmp(cmd_name, "w") == 0) {
+    ok = exec_win(tok);
   } else if (strcmp(cmd_name, "p") == 0) {
     // the "ok" is the result
     ok = true;
@@ -110,6 +112,7 @@ void exec_cmd(char * cmd) {
     Serial.print("h(elp)\n");
     Serial.print("s(core) strip team # team # team #\n");
     Serial.print("t(arget) team terr\n");
+    Serial.print("w(in) team\n");
     Serial.print("p(ing)\n");
     ok = true;
   }
@@ -237,29 +240,50 @@ boolean exec_target(char * tok) {
     return false;
   }
   
-  // Find the offset for the team's LED matrix
-  byte start_led = target_teams_start[team];
-  for (int i = 0; i < TARGET_DIGIT_LEDS; i++) {
-    byte * digit;
-    switch (territory) {
-      case 0:
-        digit = digit_1;
-        break;
-      case 1:
-        digit = digit_2;
-        break;
-      case 2:
-        digit = digit_3;
-        break;
-      case 3:
-        digit = digit_4;
-        break;
-      default:
-        return false;
-    }
-    target_strip.setPixelColor(start_led + i, digit[i] ? team_colors[team] : 0);
+  // Map the territory to the matrix we want to display
+  byte * matrix;
+  switch (territory) {
+    case 0:
+      matrix = digit_1;
+      break;
+    case 1:
+      matrix = digit_2;
+      break;
+    case 2:
+      matrix = digit_3;
+      break;
+    case 3:
+      matrix = digit_4;
+      break;
+    default:
+      return false;
   }
-  target_strip.show();
+  
+  // Update that matrix module
+  set_target_matrix(team, team_colors[team], matrix);
+  return true;
+}
+
+boolean exec_win(char * tok) {
+  // Read team number
+  char * arg = strtok_r(NULL, " ", &tok);
+  if (arg == NULL) {  
+    Serial.print(e_team_required);
+    return false;
+  }
+  int team = atoi(arg);
+  if (team > 2) {
+    Serial.print(e_team_nums);
+    return false;
+  }
+
+  boolean * letters[] = {letter_w, letter_i, letter_n};
+  for (byte letter = 0; letter < 3; letter++) {
+    set_target_matrix(0, team_colors[team], letters[letter]);
+    set_target_matrix(1, team_colors[team], letters[letter]);
+    set_target_matrix(2, team_colors[team], letters[letter]);
+    delay(400);
+  }
   return true;
 }
 
@@ -288,5 +312,14 @@ void flash(Adafruit_NeoPixel & strip, uint32_t color, byte times, unsigned long 
       delay(delay_ms / 2);
     }
   }
+}
+
+void set_target_matrix(byte team, uint32_t color, boolean matrix[]) {
+  // Find the offset for the team's LED matrix
+  byte start_led = target_teams_start[team];
+  for (int i = 0; i < TARGET_DIGIT_LEDS; i++) {
+    target_strip.setPixelColor(start_led + i, matrix[i] ? color : 0);
+  }
+  target_strip.show();
 }
 
