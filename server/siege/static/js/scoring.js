@@ -67,9 +67,7 @@ _.extend(WinnerLogo.prototype, {
         this.application = app;
         this.clanId = clanId;
         this.clanImage = this.application.clanLogosLarge[clanId];
-        console.log(this.clanImage);
         this.winnerImage = this.application.assets.images['winner-logo-large'];
-        console.log(this.winnerImage);
 
         this.bounceY = 0;
         this.bounceYRad = 0;
@@ -134,16 +132,64 @@ var TerritoriesDisplay = klass.create();
 _.extend(TerritoriesDisplay.prototype, {
     initialize: function(app) {
         this.application = app;
-        this.margin = 8;
+        this.margin = 18;
         this.padding = 3;
-        this.rectWidth = 10;
-        this.rectHeight = 18;
+        this.rectWidth = 30;
+        this.rectHeight = 50;
+        this.territoryControl = null;
+        this.controlColors = [[255, 78, 78],
+                              [78, 255, 78],
+                              [78, 78, 255]];
     },
 
     update: function(territoryControl) {
+        this.territoryControl = territoryControl;
+    },
+
+    renderTerritory: function(g, x1, y1, width, height, territory) {
+        g.beginPath();
+        g.rect(x1, y1, width, height);
+        g.lineWidth = 2;
+        if (territory.controllingClan != -1) {
+            var clanId = territory.controllingClan;
+            var color = rgbaString(this.controlColors[clanId]);
+            g.fillStyle = color;
+        } else {
+            g.fillStyle = 'white';
+        }
+        g.strokeStyle = 'black';
+        g.fill();
+        g.stroke();
     },
 
     render: function(g) {
+        if (!this.territoryControl) {
+            return;
+        }
+
+        var scene = this.application.scene;
+        var width = this.rectWidth;
+        var height = this.rectHeight;
+
+        var x1 = this.margin;
+        var y1 = scene.height - this.margin - this.rectHeight;
+        // 3
+        this.renderTerritory(g, x1, y1, width, height,
+                             this.territoryControl[2]);
+        var x1 = this.margin + this.padding + width;
+        // 4
+        this.renderTerritory(g, x1, y1, width, height,
+                             this.territoryControl[3]);
+        // 1
+        var x1 = this.margin;
+        var y1 = scene.height - this.margin
+                 - this.rectHeight * 2 - this.padding;
+        this.renderTerritory(g, x1, y1, width, height,
+                             this.territoryControl[0]);
+        // 2
+        var x1 = this.margin + this.padding + width;
+        this.renderTerritory(g, x1, y1, width, height,
+                             this.territoryControl[1]);
     }
 });
 
@@ -316,6 +362,7 @@ _.extend(Application.prototype, {
         this.chart = new PiChart(this, chartPos, 100, 3);
         this.teamLogo = new TeamLogo(this);
         this.newGameCountdown = new NewGameCountdown(this);
+        this.territoriesDisplay = new TerritoriesDisplay(this);
         this.winnerLogo = null;
         this.clanLogos = [];
         this.clanLogosLarge = [];
@@ -415,6 +462,7 @@ _.extend(Application.prototype, {
         this.scene.reset();
         this.scene.addObject(this.teamLogo);
         this.scene.addObject(this.chart);
+        this.scene.addObject(this.territoriesDisplay);
     },
 
     setEndScene: function() {
@@ -459,11 +507,11 @@ _.extend(Application.prototype, {
             for (var i=0;i<clans.length;i++) {
                 this.clans[i].points = clans[i];
             }
+            this.territoriesDisplay.update(msg.territoryControl);
         } else if (this.gameMode == GM_ENDED && this.pending) {
             // get countdown info
             this.nextGameIn = Math.floor(msg.nextGameIn);
             this.newGameCountdown.update(this.nextGameIn);
-            console.log(this.nextGameIn);
         }
     },
 

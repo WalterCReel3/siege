@@ -11,7 +11,7 @@ from siege.models import Player
 from siege.service import config
 
 
-DEBUG = True
+DEBUG = False
 MINIMUM_HOLD_TIME = 5.0
 MINIMUM_HOLD_PERCENTAGE = 0.5
 POWER_THRESHOLD = 2000
